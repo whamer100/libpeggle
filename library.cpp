@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-void hello()
+void Peggle::hello()
 {
     std::cout << "Hello, World!" << std::endl;
 }

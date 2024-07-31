@@ -8,3 +8,12 @@ add_library(libpeggle STATIC library.cpp)
 set_target_properties(libpeggle PROPERTIES PUBLIC_HEADER "library.h")
 
 configure_file("library.h" "${CMAKE_BINARY_DIR}/" COPYONLY)
+
+### TESTING APPLICATION GOES HERE ###
+
+project(libpeggle_testing)
+
+set(CMAKE_CXX_STANDARD 20)
+
+add_executable(libpeggle_testing testing/main.cpp)
+target_link_libraries(libpeggle_testing libpeggle)
