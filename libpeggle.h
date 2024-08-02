@@ -12,7 +12,7 @@ namespace Peggle {
     class Pak {
     public:
         explicit Pak(const std::filesystem::path& path);
-        void Save(const std::filesystem::path& path);
+        void Save(const std::filesystem::path& path) const;
         bool IsPak() const;
         uint32_t GetVersion() const;
         ~Pak();

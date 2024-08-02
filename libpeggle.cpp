@@ -1,8 +1,10 @@
 #include "libpeggle.h"
 
 #define WIN32_LEAN_AND_MEAN
+#include <fstream>
 #include <Windows.h>
 
+#include "binstream.h"
 #include "iohelper.h"
 #include "logma.h"
 
@@ -59,7 +61,7 @@ namespace Peggle {
         uint32_t StartPos{};
         uint32_t Size{};
         std::string toString() {
-            auto system_time_point = std::chrono::clock_cast<std::chrono::system_clock>(FileTime);
+            const auto system_time_point = std::chrono::clock_cast<std::chrono::system_clock>(FileTime);
             auto local_time = std::chrono::zoned_time{std::chrono::current_zone(), system_time_point};
 
             return std::format("PakRecord {{ {}, {}, {}, {} }}",
@@ -175,9 +177,38 @@ namespace Peggle {
         return Version;
     }
 
-    // TODO: write pak to folder
-    void Pak::Save(const std::filesystem::path &path) {
+    void Pak::Save(const std::filesystem::path &path) const {
+        binstream bs;
 
+        bs << PAK_MAGIC;
+        bs << Version;
+
+        // write file table
+        for (const auto& file: PakCollection) {
+            const auto file_name = file.FileName;
+            bs.write<uint8_t>(0x00);  // entry flags
+            bs.write<uint8_t>(file_name.Length);
+            bs.write(file_name.Data, file_name.Length);
+            bs.write<uint32_t>(file.Size);
+            bs.write<uint64_t>(file.FileTime.time_since_epoch().count());
+        }
+        bs.write<uint8_t>(FILEFLAGS_END);
+
+        // write file block
+        for (const auto& entry: PakEntries) {
+            bs.write(entry.Data, entry.Size);
+        }
+
+        auto transform_xor = Xor;
+        bs.transform([&transform_xor](const uint8_t& it) {
+            return it ^ transform_xor;
+        });
+
+        // log_info("%d\n", bs.size());
+
+        std::ofstream out_fs(path, std::ofstream::out | std::ofstream::binary);
+        out_fs.write(reinterpret_cast<const char*>(bs.buffer()), bs.size());
+        out_fs.close();
     }
 
     Pak::~Pak() {

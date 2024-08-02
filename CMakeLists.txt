@@ -16,6 +16,7 @@ set(target_headers
         libpeggle.h
         iohelper.h
         logma.h
+        binstream.h
         macros.h
 )
 
