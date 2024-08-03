@@ -40,3 +40,9 @@ add_executable(${PROJECT_NAME} testing/main.cpp)
 target_link_libraries(${PROJECT_NAME} libpeggle)
 
 configure_file("testing/simple.pak" "${CMAKE_BINARY_DIR}/" COPYONLY)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/testing/simple
+        ${CMAKE_CURRENT_BINARY_DIR}/simple
+)
+# file(COPY "testing/simple" DESTINATION "${CMAKE_BINARY_DIR}/")

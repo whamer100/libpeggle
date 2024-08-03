@@ -11,16 +11,24 @@ namespace Peggle {
 
     class Pak {
     public:
+        // open pak file or folder
         explicit Pak(const std::filesystem::path& path);
+        // save pak to file
         void Save(const std::filesystem::path& path) const;
+        // save pak to folder
+        void Export(const std::filesystem::path& path) const;
+        [[nodiscard]]
         bool IsPak() const;
-        uint32_t GetVersion() const;
+        void SetXor(uint8_t Xor);
+        const std::vector<std::string>& GetFileList();
         ~Pak();
     private:
         // TODO: dont expose this with public api somehow
         bool Valid;
         uint32_t Version;
         uint8_t Xor;
+        void LoadPak(const std::filesystem::path& path);
+        void LoadFolder(const std::filesystem::path& path);
         FILE* fp;
         std::vector<PakRecord> PakCollection;
         std::vector<PakEntry> PakEntries;

@@ -53,6 +53,11 @@ namespace Peggle {
         std::string toString() const {
             return std::string{Data};
         }
+        PopcapString() = default;
+        explicit PopcapString(const uint8_t size) {
+            Length = size;
+            Data = (char*)calloc(1, size + 1);
+        }
     };
 
     struct PakRecord {
@@ -81,10 +86,18 @@ namespace Peggle {
         fp = nullptr;
         Valid = false;
         Xor = 0x00;
+        Version = 0;
         if (!exists(path)) {
             Valid = false;
             return;
         }
+        if (is_directory(path))
+            LoadFolder(path);
+        else
+            LoadPak(path);
+    }
+
+    void Pak::LoadPak(const std::filesystem::path &path) {
         const auto* fpath = path.c_str();
         char fpath_str[512] = {0};
         size_t NumOfCharConverted;
@@ -124,8 +137,7 @@ namespace Peggle {
                 break;
 
             const uint8_t flen = read_uint8(fp);
-            auto pstr = PopcapString{flen};
-            pstr.Data = static_cast<char*>(calloc(1, flen + 1));
+            auto pstr = PopcapString(flen);
             read_bytes(fp, pstr.Data, flen);
             xor_bytes(pstr.Data, flen);
 
@@ -169,12 +181,69 @@ namespace Peggle {
         log_debug("Done reading file data.\n");
     }
 
+    void Pak::LoadFolder(const std::filesystem::path &path) {
+        log_debug("Loading folder \"%s\".\n", path.generic_string().c_str());
+        for (const auto& dir : std::filesystem::recursive_directory_iterator(path)) {
+            if (!dir.is_regular_file())
+                continue;  // we dont actually care about directories, just the relative path that includes them
+            const auto& file = dir.path();
+            const auto relative = std::filesystem::relative(file, path);
+            const auto relative_str = relative.generic_string();
+            std::string rel_str(relative_str.length(), 0);
+            std::ranges::replace_copy(relative_str, rel_str.begin(), '/', '\\');
+            const auto pstr_len = relative.generic_string().length();
+            // if (pstr_len > 0) {
+            if (pstr_len > UINT8_MAX) {
+                log_fatal("File \"%s\" has too large of a file name! (%d > 255)\n",
+                    relative.generic_string().c_str(), pstr_len);
+                log_info("Skipping file...\n");
+                continue;
+            }
+            const auto pstr = PopcapString(static_cast<uint8_t>(pstr_len));
+            memcpy(pstr.Data, rel_str.c_str(), pstr_len);
+            const std::chrono::file_clock::time_point modified_time = std::filesystem::last_write_time(file);
+            const auto file_size = std::filesystem::file_size(file);
+            if (file_size > UINT32_MAX) {
+                log_fatal("File \"%s\" has too large of a file size! (%d > %d)\n",
+                    relative.generic_string().c_str(), pstr_len, UINT32_MAX); // i was too lazy to type out the size lol
+                log_info("Skipping file...\n");
+                continue;
+            }
+
+            const auto rec = PakRecord {
+                pstr,
+                modified_time,
+                0,
+                static_cast<uint32_t>(file_size)
+            };
+            auto* file_data = static_cast<char*>(malloc(file_size));
+            std::ifstream fs(file, std::ifstream::in | std::ifstream::binary);
+            fs.read(file_data, static_cast<std::streamsize>(file_size));
+            fs.close();
+
+            const auto ent = PakEntry {
+                pstr,
+                modified_time,
+                static_cast<uint32_t>(file_size),
+                file_data
+            };
+            PakCollection.emplace_back(rec);
+            PakEntries.emplace_back(ent);
+            FileList.emplace_back(rel_str);
+        }
+        log_debug("Done reading %d file(s).\n", PakCollection.size());
+    }
+
     bool Pak::IsPak() const {
         return Valid;
     }
 
-    uint32_t Pak::GetVersion() const {
-        return Version;
+    void Pak::SetXor(const uint8_t Xor) {
+        this->Xor = Xor;
+    }
+
+    const std::vector<std::string>& Pak::GetFileList() {
+        return FileList;
     }
 
     void Pak::Save(const std::filesystem::path &path) const {
@@ -185,7 +254,7 @@ namespace Peggle {
 
         // write file table
         for (const auto& file: PakCollection) {
-            const auto file_name = file.FileName;
+            const auto& file_name = file.FileName;
             bs.write<uint8_t>(0x00);  // entry flags
             bs.write<uint8_t>(file_name.Length);
             bs.write(file_name.Data, file_name.Length);
@@ -209,6 +278,24 @@ namespace Peggle {
         std::ofstream out_fs(path, std::ofstream::out | std::ofstream::binary);
         out_fs.write(reinterpret_cast<const char*>(bs.buffer()), bs.size());
         out_fs.close();
+    }
+
+    void Pak::Export(const std::filesystem::path& path) const {
+        for (int i = 0; i < FileList.size(); ++i) {
+            const auto& file_name = FileList[i];
+            const auto& file_record = PakCollection[i];
+            const auto& file_entry = PakEntries[i];
+
+            const auto out_path = path / file_name;
+            const auto out_path_base = out_path.parent_path();
+            std::filesystem::create_directories(out_path_base);
+
+            std::ofstream out_fs(out_path, std::ofstream::out | std::ofstream::binary);
+            out_fs.write(file_entry.Data, file_entry.Size);
+            out_fs.close();
+
+            std::filesystem::last_write_time(out_path, file_record.FileTime);
+        }
     }
 
     Pak::~Pak() {
