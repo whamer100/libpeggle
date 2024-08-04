@@ -2,6 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <fstream>
+#include <ranges>
 #include <Windows.h>
 
 #include "binstream.h"
@@ -50,6 +51,7 @@ namespace Peggle {
         uint8_t Length;
         char* Data;
 
+        [[nodiscard]]
         std::string toString() const {
             return std::string{Data};
         }
@@ -65,6 +67,7 @@ namespace Peggle {
         std::chrono::file_clock::time_point FileTime;
         uint32_t StartPos{};
         uint32_t Size{};
+        char* Data{};
         std::string toString() {
             const auto system_time_point = std::chrono::clock_cast<std::chrono::system_clock>(FileTime);
             auto local_time = std::chrono::zoned_time{std::chrono::current_zone(), system_time_point};
@@ -73,13 +76,6 @@ namespace Peggle {
                 FileName.Data, local_time, StartPos, Size
                 );
         }
-    };
-
-    struct PakEntry {
-        PopcapString FileName{};
-        std::chrono::file_clock::time_point FileTime;
-        size_t Size{};
-        char* Data{};
     };
 
     Pak::Pak(const std::filesystem::path &path) {
@@ -95,6 +91,69 @@ namespace Peggle {
             LoadFolder(path);
         else
             LoadPak(path);
+    }
+
+    FileRef Pak::GetFile(const std::string& Path) const {
+        if (!HasFile(Path))
+            return {
+                FileState::DoesNotExist,
+                nullptr,
+                0
+            };
+        const auto& rec = FileTable.at(Path);
+        return {
+            FileState::OK,
+            rec.Data,
+            rec.Size
+        };
+    }
+
+    bool Pak::HasFile(const std::string& Path) const {
+        return FileTable.contains(Path);
+    }
+
+    FileState Pak::UpdateFile(const std::string& Path, const void* Data, const uint32_t Size) {
+        return UpdateFile(Path, Data, Size, std::chrono::file_clock::now());
+    }
+
+    FileState Pak::UpdateFile(const std::string& Path, const void* Data, const uint32_t Size, const std::chrono::file_clock::time_point Timestamp) {
+        if (!HasFile(Path)) return FileState::InvalidOperation;
+        RemoveFile(Path);
+        AddFile(Path, Data, Size, Timestamp);
+        return FileState::OK;
+    }
+
+    FileState Pak::AddFile(const std::string& Path, const void* Data, const uint32_t Size) {
+        return AddFile(Path, Data, Size, std::chrono::file_clock::now());
+    }
+
+    FileState Pak::AddFile(const std::string& Path, const void* Data, const uint32_t Size, const std::chrono::file_clock::time_point Timestamp) {
+        if (HasFile(Path)) return FileState::InvalidOperation;
+        if (Path.size() > UINT8_MAX) {
+            log_fatal("File \"%s\" has too large of a file name! (%d > 255)\n",
+                Path.c_str(), Path.size());
+            return FileState::InvalidOperation;
+        }
+        const auto pstr_len = static_cast<uint8_t>(Path.size());
+        const auto pstr = PopcapString(pstr_len);
+        memcpy(pstr.Data, Path.c_str(), pstr_len);
+        const auto rec = PakRecord {
+            pstr,
+            Timestamp,
+            0,  // not being read from pak data, we can ignore this
+            Size,
+            (char*)malloc(Size)
+        };
+        memcpy(rec.Data, Data, rec.Size);
+        FileTable[Path] = rec;
+        return FileState::OK;
+    }
+
+    FileState Pak::RemoveFile(const std::string& Path) {
+        if (!HasFile(Path)) return FileState::InvalidOperation;
+        FileTable.erase(Path);
+        UpdateFileList();
+        return FileState::OK;
     }
 
     void Pak::LoadPak(const std::filesystem::path &path) {
@@ -148,35 +207,24 @@ namespace Peggle {
                 pstr,
                 FileTimeToTimePoint(file_time),
                 pos,
-                src_size
+                src_size,
+                nullptr
             };
-            PakCollection.emplace_back(rec);
-            FileList.emplace_back(rec.FileName.toString());
-            // std::printf("%s\n", rec.toString().c_str());
+            FileTable[pstr.toString()] = rec;
 
             pos += src_size;
         }
-        // and now we must correct the file starts, because just like me, PopCap is lazy.
-        const auto offset = ftell(fp);
-        for (auto& rec: PakCollection) {
-            rec.StartPos += offset;
-        }
-        log_debug("Parsed %d file(s).\n", PakCollection.size());
+        const auto header_size = ftell(fp);
+
+        log_debug("Parsed %d file(s).\n", FileTable.size());
         log_debug("Reading files...\n");
 
-        for (auto& rec: PakCollection) {
-            auto entry = PakEntry {
-                rec.FileName,
-                rec.FileTime,
-                rec.Size,
-                nullptr
-            };
-            auto* buf = static_cast<char*>(malloc(entry.Size));
-            fseek(fp, rec.StartPos, 0);
+        for (auto &rec: FileTable | std::views::values) {
+            auto* buf = static_cast<char*>(malloc(rec.Size));
+            fseek(fp, rec.StartPos + header_size, 0);
             read_bytes(fp, buf, rec.Size);
             xor_bytes(buf, rec.Size);
-            entry.Data = buf;
-            PakEntries.emplace_back(entry);
+            rec.Data = buf;
         }
         log_debug("Done reading file data.\n");
     }
@@ -210,28 +258,21 @@ namespace Peggle {
                 continue;
             }
 
-            const auto rec = PakRecord {
-                pstr,
-                modified_time,
-                0,
-                static_cast<uint32_t>(file_size)
-            };
             auto* file_data = static_cast<char*>(malloc(file_size));
             std::ifstream fs(file, std::ifstream::in | std::ifstream::binary);
             fs.read(file_data, static_cast<std::streamsize>(file_size));
             fs.close();
 
-            const auto ent = PakEntry {
+            const auto rec = PakRecord {
                 pstr,
                 modified_time,
+                0,
                 static_cast<uint32_t>(file_size),
                 file_data
             };
-            PakCollection.emplace_back(rec);
-            PakEntries.emplace_back(ent);
-            FileList.emplace_back(rel_str);
+            FileTable[pstr.toString()] = rec;
         }
-        log_debug("Done reading %d file(s).\n", PakCollection.size());
+        log_debug("Done reading %d file(s).\n", FileTable.size());
     }
 
     bool Pak::IsPak() const {
@@ -242,7 +283,15 @@ namespace Peggle {
         this->Xor = Xor;
     }
 
+    void Pak::UpdateFileList() {
+        FileList.clear();
+        for (auto &file: FileTable | std::views::keys) {
+            FileList.push_back(file);
+        }
+    }
+
     const std::vector<std::string>& Pak::GetFileList() {
+        UpdateFileList();
         return FileList;
     }
 
@@ -253,19 +302,19 @@ namespace Peggle {
         bs << Version;
 
         // write file table
-        for (const auto& file: PakCollection) {
-            const auto& file_name = file.FileName;
+        for (auto &rec: FileTable | std::views::values) {
+            const auto& file_name = rec.FileName;
             bs.write<uint8_t>(0x00);  // entry flags
             bs.write<uint8_t>(file_name.Length);
             bs.write(file_name.Data, file_name.Length);
-            bs.write<uint32_t>(file.Size);
-            bs.write<uint64_t>(file.FileTime.time_since_epoch().count());
+            bs.write<uint32_t>(rec.Size);
+            bs.write<uint64_t>(rec.FileTime.time_since_epoch().count());
         }
         bs.write<uint8_t>(FILEFLAGS_END);
 
         // write file block
-        for (const auto& entry: PakEntries) {
-            bs.write(entry.Data, entry.Size);
+        for (auto &rec: FileTable | std::views::values) {
+            bs.write(rec.Data, rec.Size);
         }
 
         auto transform_xor = Xor;
@@ -281,20 +330,16 @@ namespace Peggle {
     }
 
     void Pak::Export(const std::filesystem::path& path) const {
-        for (int i = 0; i < FileList.size(); ++i) {
-            const auto& file_name = FileList[i];
-            const auto& file_record = PakCollection[i];
-            const auto& file_entry = PakEntries[i];
-
+        for (auto &[file_name, rec]: FileTable) {
             const auto out_path = path / file_name;
             const auto out_path_base = out_path.parent_path();
             std::filesystem::create_directories(out_path_base);
 
             std::ofstream out_fs(out_path, std::ofstream::out | std::ofstream::binary);
-            out_fs.write(file_entry.Data, file_entry.Size);
+            out_fs.write(rec.Data, rec.Size);
             out_fs.close();
 
-            std::filesystem::last_write_time(out_path, file_record.FileTime);
+            std::filesystem::last_write_time(out_path, rec.FileTime);
         }
     }
 
