@@ -15,6 +15,7 @@ set(vendor_sources
 
 set(target_sources
         libpeggle.cpp
+        peggleconfig.cpp
         iohelper.cpp
         logma.cpp
 )

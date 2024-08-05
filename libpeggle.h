@@ -8,6 +8,8 @@
 namespace Peggle {
     // forward declarations for types
     struct PakRecord;
+    struct Token;
+    enum class TokenType;
 
     enum class FileState : bool {
         OK = true,
@@ -22,6 +24,8 @@ namespace Peggle {
         const void* Data;
         const uint32_t Size;
     };
+
+/// Pak ///
 
     class Pak {
     public:
@@ -55,7 +59,7 @@ namespace Peggle {
         const std::vector<std::string>& GetFileList();
         ~Pak();
     private:
-        // TODO: dont expose this with public api somehow
+        // TODO: dont expose this with public api somehow (pimpl?)
         bool Valid;
         uint32_t Version;
         uint8_t Xor;
@@ -71,6 +75,19 @@ namespace Peggle {
         // std::vector<PakEntry> PakEntries;
         // std::vector<std::string> FileList;
     };
+
+/// Config ///
+
+    class Config {
+    public:
+        explicit Config(const std::filesystem::path& path);
+        explicit Config(const Pak& pak, const std::filesystem::path& path);
+    private:
+        static std::vector<Token> Tokenize(const std::string& cfg);
+        static Token ConstructToken(TokenType type, const std::string& data);
+    };
+
+/// Logging ///
 
     enum log_mode_e {
         LogDefault,  // Enable logging, Default verbosity

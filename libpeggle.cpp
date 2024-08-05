@@ -22,6 +22,8 @@ using namespace iohelper;
 
 namespace Peggle {
 
+#pragma region libpeggle_Generic
+
     void change_logging(const log_mode_e log_mode) {
         switch (log_mode) {
             case LogDefault: {
@@ -77,6 +79,10 @@ namespace Peggle {
                 );
         }
     };
+
+#pragma endregion
+
+#pragma region libpeggle_Pak
 
     Pak::Pak(const std::filesystem::path &path) {
         fp = nullptr;
@@ -347,5 +353,10 @@ namespace Peggle {
         SAFE_FCLOSE(fp);
     }
 
+#pragma endregion
+
+#pragma region libpeggle_Level
+
+#pragma endregion
 
 }
