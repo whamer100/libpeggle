@@ -9,7 +9,12 @@ namespace Peggle {
     // forward declarations for types
     struct PakRecord;
     struct Token;
-    enum class TokenType;
+    enum class TokenType {
+        Unset,  // this type should never happen
+        String,
+        Integer,
+        Decimal
+    };
 
     enum class FileState : bool {
         OK = true,
@@ -78,13 +83,147 @@ namespace Peggle {
 
 /// Config ///
 
+    namespace ConfigTypes {
+        enum class ConfigType {
+            Trophy,
+            Stage,
+            Character
+        };
+
+        /// generic ///
+
+        struct Simple {
+            std::string Key;
+            std::vector<Token*> Values;
+        };
+
+        /// stages.cfg ///
+
+        struct Level {
+            std::string Id;
+            std::string Name;
+        };
+        struct Dialog {
+            int Index;
+            std::string Text;
+            std::string Title;
+        };
+        struct StageDialog {
+            int Index;
+            std::string Text;
+        };
+        struct Credit {
+            int Int1;  // credits index?
+            std::string Text;
+            int Int2;  // size? font?
+        };
+
+        struct Stage {
+            std::vector<Level> Levels;
+            std::vector<Dialog> Dialog;
+            std::vector<StageDialog> StageDialog;
+            std::vector<Credit> Credits;
+        };
+
+        struct StageCfg {
+            bool Valid = false;
+            std::vector<Stage> Stages;
+            std::vector<int> ExcludeRandStages;
+            std::vector<std::string> IncludeRandLevels;
+            std::vector<std::string> Tips;
+        };
+
+        /// trophy.cfg ///
+
+        struct Trophy {
+            std::string Name;
+            int Id;
+            std::vector<Simple> Etc;
+        };
+
+        struct Page {
+            std::string Name;
+            std::string Desc;
+            std::string SmallDesc;
+            std::vector<Trophy> Trophies;
+        };
+
+        struct TrophyCfg {
+            bool Valid = false;
+            std::vector<Page> Pages;
+        };
+
+        /// characters.cfg ///
+
+        struct Character {
+            std::string Name;
+            std::string Powerup;
+            std::string Desc;
+            std::vector<std::string> Tips;
+            std::vector<Simple> Etc;
+        };
+
+        struct CharacterCfg {
+            bool Valid = false;
+            std::vector<Character> Characters;
+        };
+
+        /// LevelEditor ///  TODO: not planned
+
+        // struct Choice {
+        //     std::string Key;
+        //     std::vector<Token*> Values;
+        // };
+        // struct Script {
+        //     std::vector<CfgElement> Entries;
+        // };
+
+        struct CfgObject {
+            std::vector<Simple> Elements;
+            static std::string toString();
+        };
+    }
+
     class Config {
     public:
-        explicit Config(const std::filesystem::path& path);
-        explicit Config(const Pak& pak, const std::filesystem::path& path);
+        static ConfigTypes::StageCfg LoadStageConfig(const std::string& cfg_string);
+        static ConfigTypes::StageCfg LoadStageConfig(const std::filesystem::path& path);
+        static ConfigTypes::StageCfg LoadStageConfig(const Pak& pak, const std::filesystem::path& path);
+
+        static ConfigTypes::TrophyCfg LoadTrophyConfig(const std::string& cfg_string);
+        static ConfigTypes::TrophyCfg LoadTrophyConfig(const std::filesystem::path& path);
+        static ConfigTypes::TrophyCfg LoadTrophyConfig(const Pak& pak, const std::filesystem::path& path);
+
+        static ConfigTypes::CharacterCfg LoadCharacterConfig(const std::string& cfg_string);
+        static ConfigTypes::CharacterCfg LoadCharacterConfig(const std::filesystem::path& path);
+        static ConfigTypes::CharacterCfg LoadCharacterConfig(const Pak& pak, const std::filesystem::path& path);
+
+        static std::string BuildConfig(const ConfigTypes::StageCfg& cfg);
+        static std::string BuildConfig(const ConfigTypes::TrophyCfg& cfg);
+        static std::string BuildConfig(const ConfigTypes::CharacterCfg& cfg);
+
+        static void SaveConfig(const ConfigTypes::StageCfg& cfg, Pak& pak, const std::filesystem::path& path);
+        static void SaveConfig(const ConfigTypes::TrophyCfg& cfg, Pak& pak, const std::filesystem::path& path);
+        static void SaveConfig(const ConfigTypes::CharacterCfg& cfg, Pak& pak, const std::filesystem::path& path);
+
+        static TokenType GetTokenType(const Token& token);
+        static TokenType GetTokenType(const Token* token);
+
+        static const std::string* GetTokenStringRef(const Token& token);
+        static const std::string* GetTokenStringRef(const Token* token);
+        static std::string GetTokenString(const Token& token);
+        static std::string GetTokenString(const Token* token);
+        static int32_t GetTokenInteger(const Token& token);
+        static int32_t GetTokenInteger(const Token* token);
+        static float_t GetTokenDecimal(const Token& token);
+        static float_t GetTokenDecimal(const Token* token);
+
+        static void UpdateToken(Token& token, const std::string& data);
+        static void UpdateToken(Token& token, int32_t data);
+        static void UpdateToken(Token& token, float_t data);
+
     private:
-        static std::vector<Token> Tokenize(const std::string& cfg);
-        static Token ConstructToken(TokenType type, const std::string& data);
+        static std::vector<Token*> Tokenize(const std::string& text);
     };
 
 /// Logging ///

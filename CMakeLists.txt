@@ -5,6 +5,10 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     message(FATAL_ERROR "MSVC is required to build this project.")
 endif()
 
+if (${CMAKE_BUILD_TYPE} MATCHES Debug)
+    add_compile_definitions(__DEBUG__)
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -24,6 +28,7 @@ set(target_headers
         iohelper.h
         logma.h
         binstream.h
+        utils.h
         macros.h
 )
 
@@ -47,6 +52,7 @@ add_executable(${PROJECT_NAME} testing/main.cpp)
 target_link_libraries(${PROJECT_NAME} libpeggle)
 
 configure_file("testing/simple.pak" "${CMAKE_BINARY_DIR}/" COPYONLY)
+configure_file("testing/testtrophy.cfg" "${CMAKE_BINARY_DIR}/" COPYONLY)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/testing/simple
