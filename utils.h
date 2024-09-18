@@ -72,7 +72,7 @@ namespace Utils {
         const auto offset = str.find_first_of(delimiter);
         if (offset == std::string::npos)
             return str;  // delimiter not found, return full string
-        return str.substr(offset + 1, str.length() - offset + 1);
+        return str.substr(offset + 1, str.length() - offset + delimiter.size());
     }
 
     inline std::string split_to(const std::string& str, const char delimiter) {

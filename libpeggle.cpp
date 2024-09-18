@@ -182,7 +182,7 @@ namespace Peggle {
             Xor = 0x00;
             Valid = true;
         }
-        if (magic ^ 0xF7F7F7F7 == PAK_MAGIC) {
+        if ((magic ^ 0xF7F7F7F7) == PAK_MAGIC) {
             Xor = 0xF7;
             Valid = true;
         }
