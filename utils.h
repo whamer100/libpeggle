@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 #include <regex>
+#include <type_traits>
 
 namespace Utils {
     // https://stackoverflow.com/a/13172514
     inline std::vector<std::string> split_string(const std::string& str,
-                                             const std::string& delimiter)
+                                             const std::string& delimiter)  // add the ability to limit number of splits?
     {
         std::vector<std::string> strings;
 
@@ -56,6 +57,14 @@ namespace Utils {
         return res;
     }
 
+    inline std::string fix_line_endings(const std::string& str) {
+        const std::regex remove_comments(
+            "\r\n"
+            );
+        std::string res = std::regex_replace(str, remove_comments, "\n");
+        return res;
+    }
+
     inline std::string split_to_first_whitespace(const std::string& str) {
         constexpr char whitespace[2] = {' ', '\t'};
         size_t offset = 0;
@@ -66,6 +75,7 @@ namespace Utils {
             }
             ++offset;
         }
+        return str;
     }
 
     inline std::string split_to(const std::string& str, const std::string& delimiter) {
@@ -95,6 +105,55 @@ namespace Utils {
             return str;  // delimiter not found, return full string
         return str.substr(0, offset);
     }
+
+    inline std::string forward_slash_ify(const std::string& str) {
+        std::string str_copy = str;
+        std::ranges::replace(str_copy, '/', '\\');
+        return str_copy;
+    }
+
+    // Trait to check if std::to_string can be applied to T
+    template <typename T, typename = void>
+    struct is_to_string_compatible : std::false_type {};
+
+    template <typename T>
+    struct is_to_string_compatible<T, std::void_t<decltype(std::to_string(std::declval<T>()))>> : std::true_type {};
+
+    /* // naiive solution (bad)
+    // template <typename T>
+    // struct is_to_string_type : std::disjunction<
+    //     std::is_same<T, int>,
+    //     std::is_same<T, long>,
+    //     std::is_same<T, long long>,
+    //     std::is_same<T, unsigned>,
+    //     std::is_same<T, unsigned long>,
+    //     std::is_same<T, unsigned long long>,
+    //     std::is_same<T, float>,
+    //     std::is_same<T, double>,
+    //     std::is_same<T, long double>
+    // > {};
+    //*/
+
+
+    inline std::string join(const std::vector<std::string>& elements, const std::string& delimiter) {
+        std::string joined;
+        for (const auto& i : elements)
+            joined += delimiter + i;
+        return joined.erase(0, delimiter.size());
+    }
+
+    // only accepts types that work with std::to_string
+    template <typename T>
+    std::enable_if_t<is_to_string_compatible<T>::value, std::string>
+    inline /*std::string*/ join(const std::vector<T>& elements, const std::string& delimiter) {
+        static_assert(is_to_string_compatible<T>::value, "Type T must be convertible to std::string using std::to_string");
+
+        std::string joined;
+        for (const auto& i : elements)
+            joined += delimiter + std::to_string(i);
+        return joined.erase(0, delimiter.size());
+    }
+
 }
 
 #endif //UTILS_H

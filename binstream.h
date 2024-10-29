@@ -25,6 +25,8 @@ public:
 
     // read type
     generic T read();
+    // read series of bytes as a pointer
+    void* bytes(size_t size);
     // read type without advancing cursor
     generic T peek() const;
 
@@ -71,6 +73,14 @@ generic inline T binstream::read() {
     cursor += sizeof(T);
 
     return value;
+}
+
+inline void* binstream::bytes(const size_t size) {
+    auto* data = malloc(size);
+    memcpy(&data, &buf[cursor], size);
+    cursor += size;
+
+    return data;
 }
 
 generic inline T binstream::peek() const {

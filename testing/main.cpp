@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "../libpeggle.h"
 #include "../macros.h"
 
@@ -6,11 +8,57 @@ int main()
     change_logging(Peggle::LogVerbose);
     // change_logging(Peggle::LogDisable);
 
-    // auto test_config = Peggle::Config("testtrophy.cfg");
-    const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle)");
+    // const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle)");
     // auto test_characters = Peggle::Config::LoadCharacterConfig(peggle_pak_path / "characters" / "characters.cfg");
     // auto test_trophies = Peggle::Config::LoadTrophyConfig(peggle_pak_path / "levels" / "trophy.cfg");
-    auto test_stages = Peggle::Config::LoadStageConfig(peggle_pak_path / "levels" / "stages.cfg");
+    // auto test_stages = Peggle::Config::LoadStageConfig(peggle_pak_path / "levels" / "stages.cfg");
+
+    const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
+    auto pak = Peggle::Pak(peggle_pak_path);
+
+    auto test_stages = Peggle::Config::LoadStageConfig(pak, "levels\\stages.cfg");
+    auto test_trophies = Peggle::Config::LoadTrophyConfig(pak, "levels\\trophy.cfg");
+    auto test_characters = Peggle::Config::LoadCharacterConfig(pak, "characters\\characters.cfg");
+
+    auto test_stages_str = Peggle::Config::BuildConfig(test_stages);
+    auto test_trophies_str = Peggle::Config::BuildConfig(test_trophies);
+    auto test_characters_str = Peggle::Config::BuildConfig(test_characters);
+
+
+    auto test_level = Peggle::Level::LoadLevel(pak, "levels\\vortex.dat");
+    const auto test_level_build = Peggle::Level::BuildLevel(test_level);
+    pak.UpdateFile("levels\\vortex.dat", test_level_build.Data, test_level_build.Size);
+
+    if (std::ofstream test_lvl_file(R"(C:\Projects\Generic\Haggle\test_vortex.dat)", std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
+        test_lvl_file.write(static_cast<const char *>(test_level_build.Data), test_level_build.Size);
+        test_lvl_file.close();
+    }
+
+
+    pak.UpdateFile("levels\\stages.cfg", test_stages_str.c_str(), test_stages_str.size());
+    pak.UpdateFile("levels\\trophy.cfg", test_trophies_str.c_str(), test_trophies_str.size());
+    pak.UpdateFile("characters\\characters.cfg", test_characters_str.c_str(), test_characters_str.size());
+    pak.SetXor(0xF7);
+    pak.Save("Peggle_out.pak");
+
+    // std::printf("%s\n", test_stages_str.c_str());
+
+    // if (std::ofstream test_cfg_file(R"(C:\Projects\Generic\Haggle\test_stages.cfg)", std::ios::out); test_cfg_file.is_open()) {
+    //     test_cfg_file.write(test_stages_str.c_str(), test_stages_str.size());
+    //     test_cfg_file.close();
+    // }
+    //
+    // if (std::ofstream test_cfg_file(R"(C:\Projects\Generic\Haggle\test_trophies.cfg)", std::ios::out); test_cfg_file.is_open()) {
+    //     test_cfg_file.write(test_trophies_str.c_str(), test_trophies_str.size());
+    //     test_cfg_file.close();
+    // }
+    //
+    // if (std::ofstream test_cfg_file(R"(C:\Projects\Generic\Haggle\test_characters.cfg)", std::ios::out); test_cfg_file.is_open()) {
+    //     test_cfg_file.write(test_characters_str.c_str(), test_characters_str.size());
+    //     test_cfg_file.close();
+    // }
+
+    // auto pak = Peggle::Pak(peggle_pak_path);
 
     /* comment this out to enable this
     auto pak = Peggle::Pak("simple.pak");

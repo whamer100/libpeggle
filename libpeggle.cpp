@@ -355,8 +355,4 @@ namespace Peggle {
 
 #pragma endregion
 
-#pragma region libpeggle_Level
-
-#pragma endregion
-
 }
