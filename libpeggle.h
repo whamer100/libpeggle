@@ -6,6 +6,8 @@
 #include <map>
 #include <variant>
 
+#include "logma.h"
+
 namespace Peggle {
     // forward declarations for types
     struct PakRecord;
@@ -236,6 +238,7 @@ namespace Peggle {
 
     namespace LevelTypes {
         enum LevelEntryTypes : int32_t {
+            Unknown = 0,
             Rod = 2,
             Polygon = 3,
             Circle = 5,
@@ -432,13 +435,19 @@ namespace Peggle {
             bool mCrumble = false;
         };
 
+        struct Point {
+            float x;
+            float y;
+        };
+
+        struct MovementLink;
+
         struct MovementInfo {
             int32_t mInternalLinkID = 0;  // int32
             int8_t mMovementShape = 0;  // int8;  // signed
             int32_t mType = 0;  // abs(mMovementShape)
             bool mReverse = false;
-            float mAnchorPointX = 0.;
-            float mAnchorPointY = 0.;
+            Point mAnchorPoint = {0, 0};
             int16_t mTimePeriod = 0;  // int16
 
             MovementInfoFlags mFlags {};
@@ -457,7 +466,7 @@ namespace Peggle {
             float mRotation = 0.;  // 14
             float mSubMovementOffsetX = 0.;  // 12
             float mSubMovementOffsetY = 0.;
-            MovementInfo* mSubMovementLink = {};
+            MovementLink* mSubMovementLink = {};
             float mObjectX = 0.;  // 13
             float mObjectY = 0.;
         };
@@ -487,12 +496,7 @@ namespace Peggle {
             float mMaxBounceVelocity = 0.;
             float mSubID = 0;
             // int32_t mUnk3 = 0  // figure out what this is
-            int32_t mFlipperFlags = 0;
-        };
-
-        struct Point {
-            float x;
-            float y;
+            uint8_t mFlipperFlags = 0;
         };
 
         struct VariableFloat {
@@ -510,8 +514,8 @@ namespace Peggle {
             float mF = 0.;
         };
         struct PolygonEntry {
-            Bits8 flagsA{};
-            Bits8 flagsB{};  // ver >= 0x23
+            Bits8 mFlagsA{};
+            Bits8 mFlagsB{};  // ver >= 0x23
             float mRotation = 0.;
             float mUnk1 = 0.;
             float mScale = 0.;
@@ -522,15 +526,15 @@ namespace Peggle {
             int32_t mGrowType = 0;
         };
         struct CircleEntry {
-            Bits8 flagsA{};
-            Bits8 flagsB{};  // ver >= 0x23
+            Bits8 mFlagsA{};
+            Bits8 mFlagsB{};  // ver >= 0x23
             Point mPos {0, 0};
             float mRadius = 0.;
         };
         struct BrickEntry {
-            Bits8 flagsA{};
-            Bits8 flagsB{};  // ver >= 0x23
-            Bits16 flagsC{};
+            Bits8 mFlagsA{};
+            Bits8 mFlagsB{};  // ver >= 0x23
+            Bits16 mFlagsC{};
             float mUnk1 = 0.;
             float mUnk2 = 0.;
             float mUnk3 = 0.;
@@ -543,7 +547,7 @@ namespace Peggle {
             float mUnk9 = 0.;
             uint8_t mType = 0;
             bool mCurved = true;
-            int32_t mCurvedPoints = 0;
+            uint32_t mCurvedPoints = 0;
             float mLeftAngle = 0.;
             float mRightAngle = 0.;
             float mUnk10 = 0.;
@@ -559,7 +563,7 @@ namespace Peggle {
             uint32_t mUnk12 = 0;
         };
         struct TeleportEntry {
-            Bits8 flagsA{};
+            Bits8 mFlags{};
             int32_t mWidth = 0;
             int32_t mHeight = 0;
             int32_t mUnk0 = 0;
@@ -634,7 +638,7 @@ namespace Peggle {
         typedef std::variant<RodEntry, PolygonEntry, CircleEntry, BrickEntry, TeleportEntry, EmitterEntry> Entry;
 
         struct Element {
-            int32_t int0{};
+            int32_t magic{};
             int32_t eType{};
             GenericDataFlags flags{};
             GenericData generic{};

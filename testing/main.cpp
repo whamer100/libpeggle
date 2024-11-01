@@ -2,6 +2,8 @@
 
 #include "../libpeggle.h"
 #include "../macros.h"
+#define FORE_FAIL        "\033[91m"
+#define FORE_PASS        "\033[92m"
 
 int main()
 {
@@ -13,33 +15,102 @@ int main()
     // auto test_trophies = Peggle::Config::LoadTrophyConfig(peggle_pak_path / "levels" / "trophy.cfg");
     // auto test_stages = Peggle::Config::LoadStageConfig(peggle_pak_path / "levels" / "stages.cfg");
 
+    // const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
+    // auto pak = Peggle::Pak(peggle_pak_path);
+
+    // auto test_stages = Peggle::Config::LoadStageConfig(pak, "levels\\stages.cfg");
+    // auto test_trophies = Peggle::Config::LoadTrophyConfig(pak, "levels\\trophy.cfg");
+    // auto test_characters = Peggle::Config::LoadCharacterConfig(pak, "characters\\characters.cfg");
+    //
+    // auto test_stages_str = Peggle::Config::BuildConfig(test_stages);
+    // auto test_trophies_str = Peggle::Config::BuildConfig(test_trophies);
+    // auto test_characters_str = Peggle::Config::BuildConfig(test_characters);
+
+
+    // auto test_level = Peggle::Level::LoadLevel(pak, "levels\\theamoeban.dat");
+    // const auto test_level_build = Peggle::Level::BuildLevel(test_level);
+    // // pak.UpdateFile("levels\\tubing.dat", test_level_build.Data, test_level_build.Size);
+    //
+    // if (std::ofstream test_lvl_file(R"(C:\Projects\Generic\Haggle\test_theamoeban.dat)", std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
+    //     test_lvl_file.write(static_cast<const char *>(test_level_build.Data), test_level_build.Size);
+    //     test_lvl_file.close();
+    // }
+
+
+    // pak.UpdateFile("levels\\stages.cfg", test_stages_str.c_str(), test_stages_str.size());
+    // pak.UpdateFile("levels\\trophy.cfg", test_trophies_str.c_str(), test_trophies_str.size());
+    // pak.UpdateFile("characters\\characters.cfg", test_characters_str.c_str(), test_characters_str.size());
+    // pak.SetXor(0xF7);
+    // pak.Save("Peggle_out.pak");
+
+    //*
+    auto start = std::chrono::steady_clock::now();
+
     const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
     auto pak = Peggle::Pak(peggle_pak_path);
 
     auto test_stages = Peggle::Config::LoadStageConfig(pak, "levels\\stages.cfg");
-    auto test_trophies = Peggle::Config::LoadTrophyConfig(pak, "levels\\trophy.cfg");
-    auto test_characters = Peggle::Config::LoadCharacterConfig(pak, "characters\\characters.cfg");
 
-    auto test_stages_str = Peggle::Config::BuildConfig(test_stages);
-    auto test_trophies_str = Peggle::Config::BuildConfig(test_trophies);
-    auto test_characters_str = Peggle::Config::BuildConfig(test_characters);
-
-
-    auto test_level = Peggle::Level::LoadLevel(pak, "levels\\vortex.dat");
-    const auto test_level_build = Peggle::Level::BuildLevel(test_level);
-    pak.UpdateFile("levels\\vortex.dat", test_level_build.Data, test_level_build.Size);
-
-    if (std::ofstream test_lvl_file(R"(C:\Projects\Generic\Haggle\test_vortex.dat)", std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
-        test_lvl_file.write(static_cast<const char *>(test_level_build.Data), test_level_build.Size);
-        test_lvl_file.close();
+    int total = 0;
+    int pass = 0;
+    int stage_id = 1;
+    for (const auto& stage : test_stages.Stages) {
+        int level_id = 1;
+        for (const auto& level : stage.Levels) {
+            const auto level_path = std::format("levels\\{}.dat", level.Id);
+            printf("[Level %d-%d (%s)] ", stage_id, level_id, level.Name.c_str());
+            ++level_id;
+            ++total;
+            try {
+                const auto level_data = pak.GetFile(level_path);
+                const auto level_obj = Peggle::Level::LoadLevel(level_data);
+                const auto level_built = Peggle::Level::BuildLevel(level_obj);
+                std::string out_name;
+                std::string out_name_orig;
+                if (level_data.Size != level_built.Size) {
+                    printf(FORE_FAIL "fail [size mismatch]\n" FORE_RESET);
+                    goto dump_data;
+                }
+                if (std::memcmp(level_data.Data, level_built.Data, level_data.Size) != 0) {
+                    printf(FORE_FAIL "fail [data mismatch]\n" FORE_RESET);
+                    goto dump_data;
+                }
+                goto check_passed;
+            dump_data:
+                out_name = std::format(R"(C:\Projects\Generic\Haggle\test_{}_fail.dat)", level.Id);
+                if (std::ofstream test_lvl_file(out_name, std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
+                    test_lvl_file.write(static_cast<const char *>(level_built.Data), level_built.Size);
+                    test_lvl_file.close();
+                }
+                out_name_orig = std::format(R"(C:\Projects\Generic\Haggle\test_{}_orig.dat)", level.Id);
+                if (std::ofstream test_lvl_file(out_name_orig, std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
+                    test_lvl_file.write(static_cast<const char *>(level_data.Data), level_data.Size);
+                    test_lvl_file.close();
+                }
+                continue;
+            check_passed:
+                printf(FORE_PASS "pass\n" FORE_RESET);
+                ++pass;
+            } catch (...) {
+                printf(FORE_FAIL "fail [exception]\n" FORE_RESET);
+            }
+        }
+        ++stage_id;
+        printf("\n" FORE_RESET);
     }
+    printf("[results] Total: %d (pass: %d, fail: %d)\n", total, pass, total - pass);
 
+    auto finish = std::chrono::steady_clock::now();
+    double elapsed_ms = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(finish - start).count();
+    std::printf("time taken: %f ms\n", elapsed_ms);
+    //*/
 
-    pak.UpdateFile("levels\\stages.cfg", test_stages_str.c_str(), test_stages_str.size());
-    pak.UpdateFile("levels\\trophy.cfg", test_trophies_str.c_str(), test_trophies_str.size());
-    pak.UpdateFile("characters\\characters.cfg", test_characters_str.c_str(), test_characters_str.size());
-    pak.SetXor(0xF7);
-    pak.Save("Peggle_out.pak");
+    // auto test_level = Peggle::Level::LoadLevel(R"(C:\Projects\Generic\Haggle\test_all_types.dat)");
+    // const auto test_level_build = Peggle::Level::BuildLevel(test_level);
+    // if (std::ofstream test_lvl_file(R"(C:\Projects\Generic\Haggle\test_all_types_out.dat)", std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
+    //     test_lvl_file.write(static_cast<const char *>(test_level_build.Data), test_level_build.Size);
+    //     test_lvl_file.close();
+    // }
 
     // std::printf("%s\n", test_stages_str.c_str());
 

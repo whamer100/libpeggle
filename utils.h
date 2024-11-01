@@ -112,6 +112,21 @@ namespace Utils {
         return str_copy;
     }
 
+    constexpr auto uppercase_op = [](const unsigned char c) -> unsigned char { return std::toupper(c); };
+    constexpr auto lowercase_op = [](const unsigned char c) -> unsigned char { return std::tolower(c); };
+
+    inline std::string to_upper(const std::string& str) {
+        auto str_copy = str;
+        std::ranges::transform(str.begin(), str.end(), str_copy.begin(), uppercase_op);
+        return str_copy;
+    }
+
+    inline std::string to_lower(const std::string& str) {
+        auto str_copy = str;
+        std::ranges::transform(str.begin(), str.end(), str_copy.begin(), lowercase_op);
+        return str_copy;
+    }
+
     // Trait to check if std::to_string can be applied to T
     template <typename T, typename = void>
     struct is_to_string_compatible : std::false_type {};

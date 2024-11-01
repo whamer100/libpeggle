@@ -10,6 +10,7 @@
 #include "logma.h"
 
 #include "macros.h"
+#include "utils.h"
 
 // PakInterface
 constexpr uint32_t PAK_MAGIC = 0xBAC04AC0;
@@ -106,7 +107,8 @@ namespace Peggle {
                 nullptr,
                 0
             };
-        const auto& rec = FileTable.at(Path);
+        const auto file_path = Utils::to_lower(Path);
+        const auto& rec = FileTable.at(file_path);
         return {
             FileState::OK,
             rec.Data,
@@ -115,7 +117,8 @@ namespace Peggle {
     }
 
     bool Pak::HasFile(const std::string& Path) const {
-        return FileTable.contains(Path);
+        const auto file_path = Utils::to_lower(Path);
+        return FileTable.contains(file_path);
     }
 
     FileState Pak::UpdateFile(const std::string& Path, const void* Data, const uint32_t Size) {
@@ -151,13 +154,15 @@ namespace Peggle {
             (char*)malloc(Size)
         };
         memcpy(rec.Data, Data, rec.Size);
-        FileTable[Path] = rec;
+        const auto file_path = Utils::to_lower(Path);
+        FileTable[file_path] = rec;
         return FileState::OK;
     }
 
     FileState Pak::RemoveFile(const std::string& Path) {
         if (!HasFile(Path)) return FileState::InvalidOperation;
-        FileTable.erase(Path);
+        const auto file_path = Utils::to_lower(Path);
+        FileTable.erase(file_path);
         UpdateFileList();
         return FileState::OK;
     }
@@ -216,7 +221,8 @@ namespace Peggle {
                 src_size,
                 nullptr
             };
-            FileTable[pstr.toString()] = rec;
+            const auto file_path = Utils::to_lower(pstr.toString());
+            FileTable[file_path] = rec;
 
             pos += src_size;
         }

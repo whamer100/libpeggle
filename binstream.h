@@ -77,7 +77,7 @@ generic inline T binstream::read() {
 
 inline void* binstream::bytes(const size_t size) {
     auto* data = malloc(size);
-    memcpy(&data, &buf[cursor], size);
+    memcpy(data, &buf[cursor], size);
     cursor += size;
 
     return data;

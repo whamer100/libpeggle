@@ -10,6 +10,7 @@ if (${CMAKE_BUILD_TYPE} MATCHES Debug)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -48,6 +49,14 @@ configure_file("libpeggle.h" "${CMAKE_BINARY_DIR}/" COPYONLY)
 project(libpeggle_testing)
 
 set(CMAKE_CXX_STANDARD 20)
+
+if (${CMAKE_BUILD_TYPE} MATCHES Debug)
+    add_compile_definitions(__DEBUG__)
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
+endif()
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 add_executable(${PROJECT_NAME} testing/main.cpp)
 target_link_libraries(${PROJECT_NAME} libpeggle)

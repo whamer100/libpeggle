@@ -3,6 +3,7 @@
 #include "libpeggle.h"
 #include "logma.h"
 #include "utils.h"
+#include <stdlib.h>
 
 namespace Peggle {
 
@@ -10,8 +11,8 @@ namespace Peggle {
 
 #define visit_switch(var_name) std::visit([&]<typename T0>(T0&& var_name)
 #define visit_run(v) , entry)
-#define visit_header() using T = std::decay_t<T0>
-#define visit_case(type) if constexpr (std::is_same_v<T, type>)
+#define visit_header(type) using T = std::decay_t<T0>;if constexpr (std::is_same_v<T, type>)
+#define visit_case(type) else if constexpr (std::is_same_v<T, type>)
 #define visit_default() else
 
     namespace LevelHelpers {
@@ -59,17 +60,21 @@ namespace Peggle {
         /// implementations ///
         std::string read_string(binstream& bs) {
             const auto len = bs.read<int16_t>();
+            std::string res;
+            if (len == 0) return res;
             const char* data = static_cast<char*>(bs.bytes(len));
-            return std::string(data);
+            res.assign(data, len);
+            return res;
         }
         void write_string(binstream &bs, const std::string& str) {
             const auto len = static_cast<int16_t>(str.length());
             bs.write(len);
+            if (len == 0) return;
             bs.write(str.c_str(), len);
         }
 
         LevelTypes::VariableFloat read_variable_float(binstream& bs) {
-            auto res = LevelTypes::VariableFloat{};
+            LevelTypes::VariableFloat res = {};
             const auto var1 = bs.read<char>();
 
             if (var1 > 0) {
@@ -83,7 +88,7 @@ namespace Peggle {
             return res;
         }
         void write_variable_float(binstream& bs, const LevelTypes::VariableFloat& vf) {
-            const auto var1 = static_cast<int8_t>(vf.mIsVariable);
+            const auto var1 = static_cast<int8_t>(!vf.mIsVariable);
             bs.write(var1);
             if (vf.mIsVariable)
                 write_string(bs, vf.mVariableValue);
@@ -105,7 +110,7 @@ namespace Peggle {
         // entry pain city //
 
         LevelTypes::RodEntry read_entry_rod(binstream &bs) {
-            LevelTypes::RodEntry entry{};
+            LevelTypes::RodEntry entry = {};
 
             entry.mFlags = {};
             entry.mFlags.asByte = bs.read<uint8_t>();
@@ -133,82 +138,84 @@ namespace Peggle {
         }
 
         LevelTypes::PolygonEntry read_entry_polygon(binstream &bs, const uint32_t version) {
-            LevelTypes::PolygonEntry entry{};
+            LevelTypes::PolygonEntry entry = {};
 
-            entry.flagsA = {};
-            entry.flagsA.asByte = bs.read<uint8_t>();
-            entry.flagsB = {};
+            entry.mFlagsA = {};
+            entry.mFlagsA.asByte = bs.read<uint8_t>();
+            entry.mFlagsB = {};
             if (version > 0x23)
-                entry.flagsB.asByte = bs.read<uint8_t>();
+                entry.mFlagsB.asByte = bs.read<uint8_t>();
 
-            if (entry.flagsA.v2)
+            if (entry.mFlagsA.v2)
                 entry.mRotation = bs.read<float>();
-            if (entry.flagsA.v3)
+            if (entry.mFlagsA.v3)
                 entry.mUnk1 = bs.read<float>();
-            if (entry.flagsA.v5)
+            if (entry.mFlagsA.v5)
                 entry.mScale = bs.read<float>();
-            if (entry.flagsA.v1)
+            if (entry.mFlagsA.v1)
                 entry.mNormalDir = bs.read<uint8_t>();
-            if (entry.flagsA.v4)
+            if (entry.mFlagsA.v4)
                 entry.mPos = read_point(bs);
 
             const auto numPoints = bs.read<int32_t>();
             for (int i = 0; i < numPoints; ++i)
                 entry.mPoints.emplace_back(read_point(bs));
 
-            if (entry.flagsB.v0)
+            if (entry.mFlagsB.v0)
                 entry.mUnk2 = bs.read<uint8_t>();
-            if (entry.flagsB.v1)
+            if (entry.mFlagsB.v1)
                 entry.mGrowType = bs.read<int32_t>();
 
             return entry;
         }
         void write_entry_polygon(binstream &bs, const uint32_t version, const LevelTypes::PolygonEntry &entry) {
-            bs.write(entry.flagsA.asByte);
+            bs.write(entry.mFlagsA.asByte);
             if (version > 0x23)
-                bs.write(entry.flagsB.asByte);
+                bs.write(entry.mFlagsB.asByte);
 
-            if (entry.flagsA.v2)
+            if (entry.mFlagsA.v2)
                 bs.write(entry.mRotation);
-            if (entry.flagsA.v3)
+            if (entry.mFlagsA.v3)
                 bs.write(entry.mUnk1);
-            if (entry.flagsA.v5)
+            if (entry.mFlagsA.v5)
                 bs.write(entry.mScale);
-            if (entry.flagsA.v1)
+            if (entry.mFlagsA.v1)
                 bs.write(entry.mNormalDir);
-            if (entry.flagsA.v4)
+            if (entry.mFlagsA.v4)
                 write_point(bs, entry.mPos);
 
+            const auto mNumPoints = static_cast<int32_t>(entry.mPoints.size());
+            bs.write(mNumPoints);
             for (const auto& point : entry.mPoints)
                 write_point(bs, point);
 
-            if (entry.flagsB.v0)
+            if (entry.mFlagsB.v0)
                 bs.write(entry.mUnk2);
-            if (entry.flagsB.v1)
+            if (entry.mFlagsB.v1)
                 bs.write(entry.mGrowType);
         }
 
         LevelTypes::CircleEntry read_entry_circle(binstream& bs, const uint32_t version) {
-            LevelTypes::CircleEntry entry{};
+            LevelTypes::CircleEntry entry = {};
 
-            entry.flagsA = {};
-            entry.flagsA.asByte = bs.read<uint8_t>();
-            entry.flagsB = {};
+            entry.mFlagsA = {};
+            entry.mFlagsA.asByte = bs.read<uint8_t>();
+            entry.mFlagsB = {};
             if (version >= 0x52)
-                entry.flagsA.asByte = bs.read<uint8_t>();
+                entry.mFlagsB.asByte = bs.read<uint8_t>();
 
-            if (entry.flagsA.v1)
+            if (entry.mFlagsA.v1)
                 entry.mPos = read_point(bs);
             entry.mRadius = bs.read<float>();
 
             return entry;
         }
         void write_entry_circle(binstream& bs, const uint32_t version, const LevelTypes::CircleEntry& entry) {
-            bs.write(entry.flagsA.asByte);
+            bs.write(entry.mFlagsA.asByte);
             if (version >= 0x52)
-                bs.write(entry.flagsB.asByte);
+                bs.write(entry.mFlagsB.asByte);
 
-            if (entry.flagsA.v1)
+            if (entry.mFlagsA.v1)
                 bs.write(entry.mPos);
             bs.write(entry.mRadius);
         }
@@ -216,57 +223,57 @@ namespace Peggle {
         LevelTypes::BrickEntry read_entry_brick(binstream& bs, const uint32_t version) {
             LevelTypes::BrickEntry entry = {};
 
-            entry.flagsA = {};
-            entry.flagsA.asByte = bs.read<uint8_t>();
+            entry.mFlagsA = {};
+            entry.mFlagsA.asByte = bs.read<uint8_t>();
 
-            entry.flagsB = {};
+            entry.mFlagsB = {};
             if (version >= 0x23)
-                entry.flagsB.asByte = bs.read<uint8_t>();
+                entry.mFlagsB.asByte = bs.read<uint8_t>();
 
-            if (entry.flagsA.v2)
+            if (entry.mFlagsA.v2)
                 entry.mUnk1 = bs.read<float>();
-            if (entry.flagsA.v3)
+            if (entry.mFlagsA.v3)
                 entry.mUnk2 = bs.read<float>();
-            if (entry.flagsA.v5)
+            if (entry.mFlagsA.v5)
                 entry.mUnk3 = bs.read<float>();
-            if (entry.flagsA.v1)
+            if (entry.mFlagsA.v1)
                 entry.mUnk4 = bs.read<uint8_t>();
-            if (entry.flagsA.v4)
+            if (entry.mFlagsA.v4)
                 entry.mPos = read_point(bs);
 
-            if (entry.flagsB.v0)
+            if (entry.mFlagsB.v0)
                 entry.mUnk5 = bs.read<uint8_t>();
-            if (entry.flagsB.v1)
+            if (entry.mFlagsB.v1)
                 entry.mUnk6 = bs.read<int32_t>();
-            if (entry.flagsB.v2)
+            if (entry.mFlagsB.v2)
                 entry.mUnk7 = bs.read<int16_t>();
 
-            entry.flagsC = {};
-            entry.flagsC.asShort = bs.read<uint16_t>();
+            entry.mFlagsC = {};
+            entry.mFlagsC.asShort = bs.read<uint16_t>();
 
-            if (entry.flagsC.v8)
+            if (entry.mFlagsC.v8)
                 entry.mUnk8 = bs.read<float>();
-            if (entry.flagsC.v9)
+            if (entry.mFlagsC.v9)
                 entry.mUnk9 = bs.read<float>();
-            if (entry.flagsC.v2) {
+            if (entry.mFlagsC.v2) {
                 entry.mType = bs.read<uint8_t>();
                 if (entry.mType == 5)
                     entry.mCurved = false;
             }
-            if (entry.flagsC.v3)
+            if (entry.mFlagsC.v3)
                 entry.mCurvedPoints = bs.read<uint8_t>() + 2;
-            if (entry.flagsC.v5)
+            if (entry.mFlagsC.v5)
                 entry.mLeftAngle = bs.read<float>();
-            if (entry.flagsC.v6) {
+            if (entry.mFlagsC.v6) {
                 entry.mRightAngle = bs.read<float>();
                 entry.mUnk10 = bs.read<float>();
             }
-            if (entry.flagsC.v4)
+            if (entry.mFlagsC.v4)
                 entry.mSectorAngle = bs.read<float>();
-            if (entry.flagsC.v7)
+            if (entry.mFlagsC.v7)
                 entry.mWidth = bs.read<float>();
 
-            entry.mTextureFlip = entry.flagsC.v10;
+            entry.mTextureFlip = entry.mFlagsC.v10;
 
             entry.mLength = bs.read<float>();
             entry.mAngle = bs.read<float>();
@@ -277,47 +284,49 @@ namespace Peggle {
             return entry;
         }
         void write_entry_brick(binstream& bs, const uint32_t version, const LevelTypes::BrickEntry& entry) {
-            bs.write(entry.flagsA.asByte);
+            bs.write(entry.mFlagsA.asByte);
             if (version >= 0x23)
-                bs.write(entry.flagsB.asByte);
+                bs.write(entry.mFlagsB.asByte);
 
-            if (entry.flagsA.v2)
+            if (entry.mFlagsA.v2)
                 bs.write(entry.mUnk1);
-            if (entry.flagsA.v3)
+            if (entry.mFlagsA.v3)
                 bs.write(entry.mUnk2);
-            if (entry.flagsA.v5)
+            if (entry.mFlagsA.v5)
                 bs.write(entry.mUnk3);
-            if (entry.flagsA.v1)
+            if (entry.mFlagsA.v1)
                 bs.write(entry.mUnk4);
-            if (entry.flagsA.v4)
+            if (entry.mFlagsA.v4)
                 write_point(bs, entry.mPos);
 
-            if (entry.flagsB.v0)
+            if (entry.mFlagsB.v0)
                 bs.write(entry.mUnk5);
-            if (entry.flagsB.v1)
+            if (entry.mFlagsB.v1)
                 bs.write(entry.mUnk6);
-            if (entry.flagsB.v2)
+            if (entry.mFlagsB.v2)
                 bs.write(entry.mUnk7);
 
-            bs.write(entry.flagsC.asShort);
+            bs.write(entry.mFlagsC.asShort);
 
-            if (entry.flagsC.v8)
+            if (entry.mFlagsC.v8)
                 bs.write(entry.mUnk8);
-            if (entry.flagsC.v9)
+            if (entry.mFlagsC.v9)
                 bs.write(entry.mUnk9);
-            if (entry.flagsC.v2)
+            if (entry.mFlagsC.v2)
                 bs.write(entry.mType);
-            if (entry.flagsC.v3)
-                bs.write(entry.mCurvedPoints - 2);
-            if (entry.flagsC.v5)
+            if (entry.mFlagsC.v3) {
+                const uint8_t points = entry.mCurvedPoints - 2;
+                bs.write(points);
+            }
+            if (entry.mFlagsC.v5)
                 bs.write(entry.mLeftAngle);
-            if (entry.flagsC.v6) {
+            if (entry.mFlagsC.v6) {
                 bs.write(entry.mRightAngle);
                 bs.write(entry.mUnk10);
             }
-            if (entry.flagsC.v4)
+            if (entry.mFlagsC.v4)
                 bs.write(entry.mSectorAngle);
-            if (entry.flagsC.v7)
+            if (entry.mFlagsC.v7)
                 bs.write(entry.mWidth);
 
             bs.write(entry.mLength);
@@ -328,28 +337,29 @@ namespace Peggle {
         }
 
         LevelTypes::TeleportEntry read_entry_teleport(binstream& bs, const uint32_t version) {
-            LevelTypes::TeleportEntry entry{};
+            LevelTypes::TeleportEntry entry = {};
 
-            entry.flagsA = {};
-            entry.flagsA.asByte = bs.read<uint8_t>();
+            entry.mFlags = {};
+            entry.mFlags.asByte = bs.read<uint8_t>();
 
             entry.mWidth = bs.read<int32_t>();
             entry.mHeight = bs.read<int32_t>();
 
-            if (entry.flagsA.v1)
+            if (entry.mFlags.v1)
                 entry.mUnk0 = bs.read<int16_t>();
-            if (entry.flagsA.v3)
+            if (entry.mFlags.v3)
                 entry.mUnk1 = bs.read<int32_t>();
-            if (entry.flagsA.v5)
+            if (entry.mFlags.v5)
                 entry.mUnk2 = bs.read<int32_t>();
-            if (entry.flagsA.v4) {
-                auto* sub = static_cast<LevelTypes::Element*>(malloc(sizeof LevelTypes::Element));
+            if (entry.mFlags.v4) {
+                // auto* sub = static_cast<LevelTypes::Element*>(malloc(sizeof LevelTypes::Element));
+                auto* sub = new LevelTypes::Element;
                 *sub = read_element(bs, version);
                 entry.mEntry = sub;
             }
-            if (entry.flagsA.v2)
+            if (entry.mFlags.v2)
                 entry.mPos = read_point(bs);
-            if (entry.flagsA.v6) {
+            if (entry.mFlags.v6) {
                 entry.mUnk3 = bs.read<float>();
                 entry.mUnk4 = bs.read<float>();
             }
@@ -357,29 +367,29 @@ namespace Peggle {
             return entry;
         }
         void write_entry_teleport(binstream& bs, const uint32_t version, const LevelTypes::TeleportEntry& entry) {
-            bs.write(entry.flagsA.asByte);
+            bs.write(entry.mFlags.asByte);
 
             bs.write(entry.mWidth);
             bs.write(entry.mHeight);
 
-            if (entry.flagsA.v1)
+            if (entry.mFlags.v1)
                 bs.write(entry.mUnk0);
-            if (entry.flagsA.v3)
+            if (entry.mFlags.v3)
                 bs.write(entry.mUnk1);
-            if (entry.flagsA.v5)
+            if (entry.mFlags.v5)
                 bs.write(entry.mUnk2);
-            if (entry.flagsA.v4)
+            if (entry.mFlags.v4)
                 write_element(bs, version, *entry.mEntry);
-            if (entry.flagsA.v2)
+            if (entry.mFlags.v2)
                 write_point(bs, entry.mPos);
-            if (entry.flagsA.v6) {
+            if (entry.mFlags.v6) {
                 bs.write(entry.mUnk3);
                 bs.write(entry.mUnk4);
             }
         }
 
         LevelTypes::EmitterEntry read_entry_emitter(binstream& bs) {
-            LevelTypes::EmitterEntry entry{};
+            LevelTypes::EmitterEntry entry = {};
 
             entry.mMainVar = bs.read<int32_t>();
 
@@ -545,7 +555,7 @@ namespace Peggle {
         }
 
         LevelTypes::Entry read_entry(binstream& bs, const int32_t eType, const uint32_t version) {
-            auto entry = LevelTypes::Entry{};
+            LevelTypes::Entry entry = {};
             switch (static_cast<LevelTypes::LevelEntryTypes>(eType)) {
                 case LevelTypes::Rod: {
                     entry = read_entry_rod(bs); break;
@@ -573,8 +583,7 @@ namespace Peggle {
         }
         void write_entry(binstream& bs, uint32_t version, const LevelTypes::Entry& entry) {
             visit_switch(e) {
-                visit_header();
-                visit_case(LevelTypes::RodEntry) {
+                visit_header(LevelTypes::RodEntry) {
                     write_entry_rod(bs, e);
                 }
                 visit_case(LevelTypes::PolygonEntry) {
@@ -615,15 +624,13 @@ namespace Peggle {
         }
 
         LevelTypes::MovementInfo read_movement(binstream& bs) {
-            auto res = LevelTypes::MovementInfo{};
+            LevelTypes::MovementInfo res = {};
 
             res.mMovementShape = bs.read<int8_t>();
             res.mType = abs(res.mMovementShape);
             // document mReverse as negative shape
 
-            // todo: change to Point()
-            res.mAnchorPointX = bs.read<float>();
-            res.mAnchorPointY = bs.read<float>();
+            res.mAnchorPoint = read_point(bs);
 
             res.mTimePeriod = bs.read<int16_t>();
 
@@ -659,30 +666,33 @@ namespace Peggle {
             if (res.mFlags.hasSubMovement) {
                 res.mSubMovementOffsetX = bs.read<float>();
                 res.mSubMovementOffsetY = bs.read<float>();
-                auto* sub = static_cast<LevelTypes::MovementInfo*>(malloc(sizeof LevelTypes::MovementInfo));
-                *sub = read_movement(bs);
+                // auto* sub = static_cast<LevelTypes::MovementInfo*>(malloc(sizeof LevelTypes::MovementInfo));
+                auto* sub = new LevelTypes::MovementLink;
+                *sub = read_movement_link(bs);
                 res.mSubMovementLink = sub;
             }
-            if (res.mFlags.hasObject)
+            if (res.mFlags.hasObject) {
                 res.mObjectX = bs.read<float>();
-            res.mObjectY = bs.read<float>();
+                res.mObjectY = bs.read<float>();
+            }
 
-            log_debug("%d %f %f %f %f %d\n",
-                res.mMovementShape,
-                res.mAnchorPointX, res.mAnchorPointY,
-                res.mObjectX, res.mObjectY,
-                res.mFlags.asShort
-                );
+            // log_debug("%d %f %f %f %f %d\n",
+            //     res.mMovementShape,
+            //     res.mAnchorPointX, res.mAnchorPointY,
+            //     res.mObjectX, res.mObjectY,
+            //     res.mFlags.asShort
+            //     );
 
             return res;
         }
         void write_movement(binstream& bs, const LevelTypes::MovementInfo& m) {
             bs.write(m.mMovementShape);
 
-            bs.write(m.mAnchorPointX);
-            bs.write(m.mAnchorPointY);
+            write_point(bs, m.mAnchorPoint);
 
             bs.write(m.mTimePeriod);
+
+            bs.write(m.mFlags.asShort);
 
             if (m.mFlags.hasOffset)
                 bs.write(m.mOffset);
@@ -713,7 +723,7 @@ namespace Peggle {
             if (m.mFlags.hasSubMovement) {
                 bs.write(m.mSubMovementOffsetX);
                 bs.write(m.mSubMovementOffsetY);
-                write_movement(bs, *m.mSubMovementLink);
+                write_movement_link(bs, *m.mSubMovementLink);
             }
             if (m.mFlags.hasObject) {
                 bs.write(m.mObjectX);
@@ -735,7 +745,7 @@ namespace Peggle {
         }
 
         LevelTypes::PegInfo read_peginfo(binstream& bs) {
-            auto res = LevelTypes::PegInfo{};
+            LevelTypes::PegInfo res = {};
             res.mType = bs.read<uint8_t>();
             res.mFlags = {};
             res.mFlags.asByte = bs.read<uint8_t>();
@@ -773,7 +783,7 @@ namespace Peggle {
         }
 
         LevelTypes::GenericData read_generic(binstream& bs, const LevelTypes::GenericDataFlags flags) {
-            auto generic = LevelTypes::GenericData{};
+            LevelTypes::GenericData generic = {};
             if (flags.isRolly)  // 0
                 generic.mRolly = bs.read<float>();
             if (flags.isBouncy)  // 1
@@ -861,27 +871,51 @@ namespace Peggle {
         }
 
         LevelTypes::Element read_element(binstream& bs, const uint32_t version) {
-            auto element = LevelTypes::Element{};
-            element.int0 = bs.read<int32_t>();
+            LevelTypes::Element element = {};
+            // log_debug_raw(" - (start: %d, ", bs.tell());
+            element.magic = bs.read<int32_t>();
+            if (element.magic != 1) {
+                // log_debug_raw("not an element)\n");
+                return element;
+            }
             element.eType = bs.read<int32_t>();
-            log_debug("(type: %d)\n", element.eType);
+            // log_debug_raw("type: %d)\n", element.eType);
             element.flags = {};
-            element.flags.asInt = bs.read<uint32_t>();
+            if (version == 4) {  // TODO: no idea what the lower limit actually is, try and find it in ida
+                const auto low = bs.read<uint8_t>();
+                const auto mid = bs.read<uint8_t>();
+                const auto high = bs.read<uint8_t>();
+                element.flags.asInt = (high << 16) | (mid << 8) | low;
+            }
+            else
+                element.flags.asInt = bs.read<uint32_t>();
             element.generic = read_generic(bs, element.flags);
             element.entry = read_entry(bs, element.eType, version);
             return element;
         }
         void write_element(binstream& bs, const uint32_t version, const LevelTypes::Element& element) {
-            bs.write(element.int0);
+            bs.write(element.magic);
+            if (element.magic != 1)
+                return;
             bs.write(element.eType);
-            bs.write(element.flags.asInt);
+            if (version == 4) {  // TODO: no idea what the lower limit actually is, try and find it in ida
+                const uint32_t flags = element.flags.asInt;
+                const uint8_t low = flags & 0xFF;
+                const uint8_t mid = flags >> 8 & 0xFF;
+                const uint8_t high = flags >> 16 & 0xFF;
+                bs.write(low);
+                bs.write(mid);
+                bs.write(high);
+            }
+            else
+                bs.write(element.flags.asInt);
             write_generic(bs, element.flags, element.generic);
             write_entry(bs, version, element.entry);
         }
     }
 
     LevelTypes::Level Level::LoadLevel(const void* buf, const uint32_t size) {
-        auto lvl = LevelTypes::Level{};
+        LevelTypes::Level lvl = {};
         auto bs = binstream(buf, size);  // initialize binstream...
         bs.seek(0);  // ...and go back to the start
 
@@ -889,7 +923,7 @@ namespace Peggle {
         lvl.sync_f = bs.read<uint8_t>();
         lvl.entries = bs.read<uint32_t>();
         for (int i = 0; i < lvl.entries; ++i) {
-            log_debug("%s%d ", "parsing element #", i);
+            // log_debug("parsing element #%d\n", i);
             lvl.Elements.emplace_back(LevelHelpers::read_element(bs, lvl.version));
         }
 
