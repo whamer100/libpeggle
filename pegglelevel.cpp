@@ -3,17 +3,107 @@
 #include "libpeggle.h"
 #include "logma.h"
 #include "utils.h"
-#include <stdlib.h>
+#include <cstdlib>
 
 namespace Peggle {
-
 #pragma region libpeggle_Level
 
-#define visit_switch(var_name) std::visit([&]<typename T0>(T0&& var_name)
-#define visit_run(v) , entry)
-#define visit_header(type) using T = std::decay_t<T0>;if constexpr (std::is_same_v<T, type>)
-#define visit_case(type) else if constexpr (std::is_same_v<T, type>)
-#define visit_default() else
+    struct LevelTypes::Entry {
+        union EntryData {
+            LevelTypes::RodEntry* Rod;
+            LevelTypes::PolygonEntry* Polygon;
+            LevelTypes::CircleEntry* Circle;
+            LevelTypes::BrickEntry* Brick;
+            LevelTypes::TeleportEntry* Teleport;
+            LevelTypes::EmitterEntry* Emitter;
+        };
+    private:
+        LevelTypes::LevelEntryType Type{};
+        EntryData Data{};
+
+    public:
+        explicit Entry(const LevelEntryType type) {
+            Type = type;
+            switch (type) {
+                case Rod: { Data.Rod = new RodEntry; break; }
+                case Polygon: { Data.Polygon = new PolygonEntry; break; }
+                case Circle: { Data.Circle = new CircleEntry; break; }
+                case Brick: { Data.Brick = new BrickEntry; break; }
+                case Teleporter: { Data.Teleport = new TeleportEntry; break; }
+                case Emitter: { Data.Emitter = new EmitterEntry; break; }
+                default: break;
+            }
+        }
+
+        static LevelTypes::RodEntry* GetRod(const Entry* entry) {
+            if (entry->Type == LevelEntryType::Rod)
+                return entry->Data.Rod;
+            return nullptr;
+        }
+        static LevelTypes::PolygonEntry* GetPolygon(const Entry* entry) {
+            if (entry->Type == LevelEntryType::Polygon)
+                return entry->Data.Polygon;
+            return nullptr;
+        }
+        static LevelTypes::CircleEntry* GetCircle(const Entry* entry) {
+            if (entry->Type == LevelEntryType::Circle)
+                return entry->Data.Circle;
+            return nullptr;
+        }
+        static LevelTypes::BrickEntry* GetBrick(const Entry* entry) {
+            if (entry->Type == LevelEntryType::Brick)
+                return entry->Data.Brick;
+            return nullptr;
+        }
+        static LevelTypes::TeleportEntry* GetTeleporter(const Entry* entry) {
+            if (entry->Type == LevelEntryType::Teleporter)
+                return entry->Data.Teleport;
+            return nullptr;
+        }
+        static LevelTypes::EmitterEntry* GetEmitter(const Entry* entry) {
+            if (entry->Type == LevelEntryType::Emitter)
+                return entry->Data.Emitter;
+            return nullptr;
+        }
+
+        static LevelTypes::RodEntry* GetRod(const Entry& entry) {
+            if (entry.Type == LevelEntryType::Rod)
+                return entry.Data.Rod;
+            return nullptr;
+        }
+        static LevelTypes::PolygonEntry* GetPolygon(const Entry& entry) {
+            if (entry.Type == LevelEntryType::Polygon)
+                return entry.Data.Polygon;
+            return nullptr;
+        }
+        static LevelTypes::CircleEntry* GetCircle(const Entry& entry) {
+            if (entry.Type == LevelEntryType::Circle)
+                return entry.Data.Circle;
+            return nullptr;
+        }
+        static LevelTypes::BrickEntry* GetBrick(const Entry& entry) {
+            if (entry.Type == LevelEntryType::Brick)
+                return entry.Data.Brick;
+            return nullptr;
+        }
+        static LevelTypes::TeleportEntry* GetTeleporter(const Entry& entry) {
+            if (entry.Type == LevelEntryType::Teleporter)
+                return entry.Data.Teleport;
+            return nullptr;
+        }
+        static LevelTypes::EmitterEntry* GetEmitter(const Entry& entry) {
+            if (entry.Type == LevelEntryType::Emitter)
+                return entry.Data.Emitter;
+            return nullptr;
+        }
+
+        static LevelEntryType GetType(const Entry& entry) {
+            return entry.Type;
+        }
+        static LevelEntryType GetType(const Entry* entry) {
+            return entry->Type;
+        }
+    };
 
     namespace LevelHelpers {
         /// fwd declarations ///
@@ -555,25 +645,32 @@ namespace Peggle {
         }
 
         LevelTypes::Entry read_entry(binstream& bs, const int32_t eType, const uint32_t version) {
-            LevelTypes::Entry entry = {};
-            switch (static_cast<LevelTypes::LevelEntryTypes>(eType)) {
+            const auto entry_type = static_cast<LevelTypes::LevelEntryType>(eType);
+            const auto entry = LevelTypes::Entry(entry_type);
+            switch (entry_type) {
                 case LevelTypes::Rod: {
-                    entry = read_entry_rod(bs); break;
+                    const auto rod = LevelTypes::Entry::GetRod(entry);
+                    *rod = read_entry_rod(bs); break;
                 }
                 case LevelTypes::Polygon: {
-                    entry = read_entry_polygon(bs, version); break;
+                    const auto polygon = LevelTypes::Entry::GetPolygon(entry);
+                    *polygon = read_entry_polygon(bs, version); break;
                 }
                 case LevelTypes::Circle: {
-                    entry = read_entry_circle(bs, version); break;
+                    const auto circle = LevelTypes::Entry::GetCircle(entry);
+                    *circle = read_entry_circle(bs, version); break;
                 }
                 case LevelTypes::Brick: {
-                    entry = read_entry_brick(bs, version); break;
+                    const auto brick = LevelTypes::Entry::GetBrick(entry);
+                    *brick = read_entry_brick(bs, version); break;
                 }
-                case LevelTypes::Teleport: {
-                    entry = read_entry_teleport(bs, version); break;
+                case LevelTypes::Teleporter: {
+                    const auto teleporter = LevelTypes::Entry::GetTeleporter(entry);
+                    *teleporter = read_entry_teleport(bs, version); break;
                 }
                 case LevelTypes::Emitter: {
-                    entry = read_entry_emitter(bs); break;
+                    const auto emitter = LevelTypes::Entry::GetEmitter(entry);
+                    *emitter = read_entry_emitter(bs); break;
                 }
                 default: {
                     // todo: raise exception for invalid entry type
@@ -581,46 +678,36 @@ namespace Peggle {
             }
             return entry;
         }
-        void write_entry(binstream& bs, uint32_t version, const LevelTypes::Entry& entry) {
-            visit_switch(e) {
-                visit_header(LevelTypes::RodEntry) {
-                    write_entry_rod(bs, e);
+        void write_entry(binstream& bs, const uint32_t version, const LevelTypes::Entry& entry) {
+            switch (LevelTypes::Entry::GetType(entry)) {
+                case LevelTypes::Rod: {
+                    const auto rod = LevelTypes::Entry::GetRod(entry);
+                    write_entry_rod(bs, *rod); break;
                 }
-                visit_case(LevelTypes::PolygonEntry) {
-                    write_entry_polygon(bs, version, e);
+                case LevelTypes::Polygon: {
+                    const auto polygon = LevelTypes::Entry::GetPolygon(entry);
+                    write_entry_polygon(bs, version, *polygon); break;
                 }
-                visit_case(LevelTypes::CircleEntry) {
-                    write_entry_circle(bs, version, e);
+                case LevelTypes::Circle: {
+                    const auto circle = LevelTypes::Entry::GetCircle(entry);
+                    write_entry_circle(bs, version, *circle); break;
                 }
-                visit_case(LevelTypes::BrickEntry) {
-                    write_entry_brick(bs, version, e);
+                case LevelTypes::Brick: {
+                    const auto brick = LevelTypes::Entry::GetBrick(entry);
+                    write_entry_brick(bs, version, *brick); break;
                 }
-                visit_case(LevelTypes::TeleportEntry) {
-                    write_entry_teleport(bs, version, e);
+                case LevelTypes::Teleporter: {
+                    const auto teleporter = LevelTypes::Entry::GetTeleporter(entry);
+                    write_entry_teleport(bs, version, *teleporter); break;
                 }
-                visit_case(LevelTypes::EmitterEntry) {
-                    write_entry_emitter(bs, e);
+                case LevelTypes::Emitter: {
+                    const auto emitter = LevelTypes::Entry::GetEmitter(entry);
+                    write_entry_emitter(bs, *emitter); break;
                 }
-                visit_default() {
-                    // todo: throw error for invalid type
+                default: {
+                    // todo: raise exception for invalid entry type
                 }
             }
-            visit_run(entry);
-
-            /*// this looks horrible :henyaStaree:
-            std::visit([]<typename T0>(T0&& arg) {
-                using T = std::decay_t<T0>;
-                if constexpr (std::is_same_v<T, LevelTypes::RodEntry>) {
-
-                }
-                if constexpr (std::is_same_v<T, LevelTypes::PolygonEntry>) {
-
-                }
-                else {
-
-                }
-            }, entry);*/
-
         }
 
         LevelTypes::MovementInfo read_movement(binstream& bs) {
@@ -890,7 +977,7 @@ namespace Peggle {
             else
                 element.flags.asInt = bs.read<uint32_t>();
             element.generic = read_generic(bs, element.flags);
-            element.entry = read_entry(bs, element.eType, version);
+            *element.entry = read_entry(bs, element.eType, version);
             return element;
         }
         void write_element(binstream& bs, const uint32_t version, const LevelTypes::Element& element) {
@@ -910,7 +997,7 @@ namespace Peggle {
             else
                 bs.write(element.flags.asInt);
             write_generic(bs, element.flags, element.generic);
-            write_entry(bs, version, element.entry);
+            write_entry(bs, version, *element.entry);
         }
     }
 
@@ -978,11 +1065,286 @@ namespace Peggle {
         };
     }
 
-#undef visit_switch
-#undef visit_run
-#undef visit_header
-#undef visit_case
-#undef visit_default
+    LevelTypes::RodEntry* Level::AccessRod(LevelTypes::Entry& entry) {
+        return LevelTypes::Entry::GetRod(entry);
+    }
+    LevelTypes::PolygonEntry* Level::AccessPolygon(LevelTypes::Entry& entry) {
+        return LevelTypes::Entry::GetPolygon(entry);
+    }
+    LevelTypes::CircleEntry* Level::AccessCircle(LevelTypes::Entry& entry) {
+        return LevelTypes::Entry::GetCircle(entry);
+    }
+    LevelTypes::BrickEntry* Level::AccessBrick(LevelTypes::Entry& entry) {
+        return LevelTypes::Entry::GetBrick(entry);
+    }
+    LevelTypes::TeleportEntry* Level::AccessTeleporter(LevelTypes::Entry& entry) {
+        return LevelTypes::Entry::GetTeleporter(entry);
+    }
+    LevelTypes::EmitterEntry* Level::AccessEmitter(LevelTypes::Entry& entry) {
+        return LevelTypes::Entry::GetEmitter(entry);
+    }
+
+    LevelTypes::RodEntry Level::CloneRod(LevelTypes::Entry& entry) {
+        const auto e = AccessRod(entry);
+        if (!e) return {};
+        LevelTypes::RodEntry res = {};
+
+        res.valid = true;
+        res.mFlags = e->mFlags;
+        res.mPointA = e->mPointA;
+        res.mPointB = e->mPointB;
+        res.mE = e->mE;
+        res.mF = e->mF;
+
+        return res;
+    }
+    LevelTypes::PolygonEntry Level::ClonePolygon(LevelTypes::Entry& entry) {
+        const auto e = AccessPolygon(entry);
+        if (!e) return {};
+        LevelTypes::PolygonEntry res = {};
+
+        res.valid = true;
+        res.mFlagsA = e->mFlagsA;
+        res.mFlagsB = e->mFlagsB;
+        res.mRotation = e->mRotation;
+        res.mUnk1 = e->mUnk1;
+        res.mScale = e->mScale;
+        res.mNormalDir = e->mNormalDir;
+        res.mPos = e->mPos;
+        res.mPoints = e->mPoints;
+        res.mUnk2 = e->mUnk2;
+        res.mGrowType = e->mGrowType;
+
+        return res;
+
+    }
+    LevelTypes::CircleEntry Level::CloneCircle(LevelTypes::Entry& entry) {
+        const auto e = AccessCircle(entry);
+        if (!e) return {};
+        LevelTypes::CircleEntry res = {};
+
+        res.valid = true;
+        res.mFlagsA = e->mFlagsA;
+        res.mFlagsB = e->mFlagsB;
+        res.mPos = e->mPos;
+        res.mRadius = e->mRadius;
+
+        return res;
+
+    }
+    LevelTypes::BrickEntry Level::CloneBrick(LevelTypes::Entry& entry) {
+        const auto e = AccessBrick(entry);
+        if (!e) return {};
+        LevelTypes::BrickEntry res = {};
+
+        res.valid = true;
+        res.mFlagsA = e->mFlagsA;
+        res.mFlagsB = e->mFlagsB;
+        res.mFlagsC = e->mFlagsC;
+        res.mUnk1 = e->mUnk1;
+        res.mUnk2 = e->mUnk2;
+        res.mUnk3 = e->mUnk3;
+        res.mUnk4 = e->mUnk4;
+        res.mPos = e->mPos;
+        res.mUnk5 = e->mUnk5;
+        res.mUnk6 = e->mUnk6;
+        res.mUnk7 = e->mUnk7;
+        res.mUnk8 = e->mUnk8;
+        res.mUnk9 = e->mUnk9;
+        res.mType = e->mType;
+        res.mCurved = e->mCurved;
+        res.mCurvedPoints = e->mCurvedPoints;
+        res.mLeftAngle = e->mLeftAngle;
+        res.mRightAngle = e->mRightAngle;
+        res.mUnk10 = e->mUnk10;
+        res.mSectorAngle = e->mSectorAngle;
+        res.mWidth = e->mWidth;
+        res.mLength = e->mLength;
+        res.mAngle = e->mAngle;
+        res.mTextureFlip = e->mTextureFlip;
+        res.mUnk12 = e->mUnk12;
+
+        return res;
+
+    }
+    LevelTypes::TeleportEntry Level::CloneTeleporter(LevelTypes::Entry& entry) {
+        const auto e = AccessTeleporter(entry);
+        if (!e) return {};
+        LevelTypes::TeleportEntry res = {};
+
+        res.valid = true;
+        res.mFlags = e->mFlags;
+        res.mWidth = e->mWidth;
+        res.mHeight = e->mHeight;
+        res.mUnk0 = e->mUnk0;
+        res.mUnk1 = e->mUnk1;
+        res.mUnk2 = e->mUnk2;
+
+        res.mEntry = new LevelTypes::Element;
+        *res.mEntry = CloneElement(*e->mEntry);
+
+        res.mPos = e->mPos;
+        res.mUnk3 = e->mUnk3;
+        res.mUnk4 = e->mUnk4;
+
+        return res;
+    }
+    LevelTypes::EmitterEntry Level::CloneEmitter(LevelTypes::Entry& entry) {
+        const auto e = AccessEmitter(entry);
+        if (!e) return {};
+        LevelTypes::EmitterEntry res = {};
+
+        res.valid = true;
+        res.mMainVar = e->mMainVar;
+        res.mFlags = e->mFlags;
+        res.mImage = e->mImage;
+        res.mWidth = e->mWidth;
+        res.mHeight = e->mHeight;
+        res.mMainVar0 = e->mMainVar0;
+        res.mMainVar1 = e->mMainVar1;
+        res.mMainVar2 = e->mMainVar2;
+        res.mMainVar3 = e->mMainVar3;
+        res.mUnknown0 = e->mUnknown0;
+        res.mUnknown1 = e->mUnknown1;
+        res.mPos = e->mPos;
+        res.mEmitImage = e->mEmitImage;
+        res.mUnknownEmitRate = e->mUnknownEmitRate;
+        res.mUnknown2 = e->mUnknown2;
+        res.mRotation = e->mRotation;
+        res.mMaxQuantity = e->mMaxQuantity;
+        res.mTimeBeforeFadeOut = e->mTimeBeforeFadeOut;
+        res.mFadeInTime = e->mFadeInTime;
+        res.mLifeDuration = e->mLifeDuration;
+        res.mEmitRate = e->mEmitRate;
+        res.mEmitAreaMultiplier = e->mEmitAreaMultiplier;
+        res.mInitialRotation = e->mInitialRotation;
+        res.mRotationVelocity = e->mRotationVelocity;
+        res.mRotationUnknown = e->mRotationUnknown;
+        res.mMinScale = e->mMinScale;
+        res.mScaleVelocity = e->mScaleVelocity;
+        res.mMaxRandScale = e->mMaxRandScale;
+        res.mColourRed = e->mColourRed;
+        res.mColourGreen = e->mColourGreen;
+        res.mColourBlue = e->mColourBlue;
+        res.mOpacity = e->mOpacity;
+        res.mMinVelocityX = e->mMinVelocityX;
+        res.mMinVelocityY = e->mMinVelocityY;
+        res.mMaxVelocityX = e->mMaxVelocityX;
+        res.mMaxVelocityY = e->mMaxVelocityY;
+        res.mAccelerationX = e->mAccelerationX;
+        res.mAccelerationY = e->mAccelerationY;
+        res.mDirectionSpeed = e->mDirectionSpeed;
+        res.mDirectionRandomSpeed = e->mDirectionRandomSpeed;
+        res.mDirectionAcceleration = e->mDirectionAcceleration;
+        res.mDirectionAngle = e->mDirectionAngle;
+        res.mDirectionRandomAngle = e->mDirectionRandomAngle;
+        res.mUnknownA = e->mUnknownA;
+        res.mUnknownB = e->mUnknownB;
+
+        return res;
+    }
+    LevelTypes::GenericData Level::CloneGenericData(const LevelTypes::GenericData& generic) {
+        LevelTypes::GenericData res = {};
+
+        res.mRolly = generic.mRolly;
+        res.mBouncy = generic.mBouncy;
+        res.mPegInfo = generic.mPegInfo;
+        res.mMovementLink = CloneMovementLink(generic.mMovementLink);
+        res.mUnk0 = generic.mUnk0;
+        res.mSolidColor = generic.mSolidColor;
+        res.mOutlineColor = generic.mOutlineColor;
+        res.mImage = generic.mImage;
+        res.mImageDX = generic.mImageDX;
+        res.mImageDY = generic.mImageDY;
+        res.mRotation = generic.mRotation;
+        res.mUnk1 = generic.mUnk1;
+        res.mID = generic.mID;
+        res.mUnk2 = generic.mUnk2;
+        res.mSound = generic.mSound;
+        res.mLogic = generic.mLogic;
+        res.mMaxBounceVelocity = generic.mMaxBounceVelocity;
+        res.mSubID = generic.mSubID;
+        res.mFlipperFlags = generic.mFlipperFlags;
+
+        return res;
+    }
+    LevelTypes::MovementLink Level::CloneMovementLink(const LevelTypes::MovementLink& movement) {
+        LevelTypes::MovementLink res = {};
+
+        res.InternalLinkId = movement.InternalLinkId;
+
+        res.InternalMovement.mInternalLinkID = movement.InternalMovement.mInternalLinkID;
+        res.InternalMovement.mMovementShape = movement.InternalMovement.mMovementShape;
+        res.InternalMovement.mType = movement.InternalMovement.mType;
+        res.InternalMovement.mReverse = movement.InternalMovement.mReverse;
+        res.InternalMovement.mAnchorPoint = movement.InternalMovement.mAnchorPoint;
+        res.InternalMovement.mTimePeriod = movement.InternalMovement.mTimePeriod;
+        res.InternalMovement.mFlags = movement.InternalMovement.mFlags;
+        res.InternalMovement.mOffset = movement.InternalMovement.mOffset;
+        res.InternalMovement.mRadius1 = movement.InternalMovement.mRadius1;
+        res.InternalMovement.mStartPhase = movement.InternalMovement.mStartPhase;
+        res.InternalMovement.mMoveRotation = movement.InternalMovement.mMoveRotation;
+        res.InternalMovement.mRadius2 = movement.InternalMovement.mRadius2;
+        res.InternalMovement.mPause1 = movement.InternalMovement.mPause1;
+        res.InternalMovement.mPause2 = movement.InternalMovement.mPause2;
+        res.InternalMovement.mPhase1 = movement.InternalMovement.mPhase1;
+        res.InternalMovement.mPhase2 = movement.InternalMovement.mPhase2;
+        res.InternalMovement.mPostDelayPhase = movement.InternalMovement.mPostDelayPhase;
+        res.InternalMovement.mMaxAngle = movement.InternalMovement.mMaxAngle;
+        res.InternalMovement.mUnknown8 = movement.InternalMovement.mUnknown8;
+        res.InternalMovement.mRotation = movement.InternalMovement.mRotation;
+        res.InternalMovement.mSubMovementOffsetX = movement.InternalMovement.mSubMovementOffsetX;
+        res.InternalMovement.mSubMovementOffsetY = movement.InternalMovement.mSubMovementOffsetY;
+        if (movement.InternalMovement.mSubMovementLink) {
+            res.InternalMovement.mSubMovementLink = new LevelTypes::MovementLink;
+            *res.InternalMovement.mSubMovementLink = CloneMovementLink(*movement.InternalMovement.mSubMovementLink);
+        }
+        res.InternalMovement.mSubMovementLink = movement.InternalMovement.mSubMovementLink;
+        res.InternalMovement.mObjectX = movement.InternalMovement.mObjectX;
+        res.InternalMovement.mObjectY = movement.InternalMovement.mObjectY;
+
+        return res;
+    }
+
+    LevelTypes::Element Level::CloneElement(const LevelTypes::Element& element) {
+        LevelTypes::Element res = {};
+
+        res.magic = element.magic;
+        res.eType = element.eType;
+        res.flags = element.flags;
+        res.generic = CloneGenericData(element.generic);
+
+        const auto entry = element.entry;
+        switch (res.eType) {  // TODO: get this working
+            case LevelTypes::Rod: {
+                const auto rod = LevelTypes::Entry::GetRod(entry);
+                *rod = CloneRod(*entry); break;
+            }
+            case LevelTypes::Polygon: {
+                const auto polygon = LevelTypes::Entry::GetPolygon(entry);
+                *polygon = ClonePolygon(*entry); break;
+            }
+            case LevelTypes::Circle: {
+                const auto circle = LevelTypes::Entry::GetCircle(entry);
+                *circle = CloneCircle(*entry); break;
+            }
+            case LevelTypes::Brick: {
+                const auto brick = LevelTypes::Entry::GetBrick(entry);
+                *brick = CloneBrick(*entry); break;
+            }
+            case LevelTypes::Teleporter: {
+                const auto teleporter = LevelTypes::Entry::GetTeleporter(entry);
+                *teleporter = CloneTeleporter(*entry); break;
+            }
+            case LevelTypes::Emitter: {
+                const auto emitter = LevelTypes::Entry::GetEmitter(entry);
+                *emitter = CloneEmitter(*entry); break;
+            }
+            default: break;
+        }
+
+        return res;
+    }
 
 #pragma endregion
 

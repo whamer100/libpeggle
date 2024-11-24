@@ -237,13 +237,13 @@ namespace Peggle {
 #pragma region libpeggle_Level
 
     namespace LevelTypes {
-        enum LevelEntryTypes : int32_t {
+        enum LevelEntryType : int32_t {
             Unknown = 0,
             Rod = 2,
             Polygon = 3,
             Circle = 5,
             Brick = 6,
-            Teleport = 8,
+            Teleporter = 8,
             Emitter = 9
         };
 
@@ -507,6 +507,7 @@ namespace Peggle {
 
         struct Element;
         struct RodEntry {
+            bool valid = false;
             Bits8 mFlags{};
             Point mPointA {0, 0};
             Point mPointB {0, 0};
@@ -514,6 +515,7 @@ namespace Peggle {
             float mF = 0.;
         };
         struct PolygonEntry {
+            bool valid = false;
             Bits8 mFlagsA{};
             Bits8 mFlagsB{};  // ver >= 0x23
             float mRotation = 0.;
@@ -526,12 +528,14 @@ namespace Peggle {
             int32_t mGrowType = 0;
         };
         struct CircleEntry {
+            bool valid = false;
             Bits8 mFlagsA{};
             Bits8 mFlagsB{};  // ver >= 0x23
             Point mPos {0, 0};
             float mRadius = 0.;
         };
         struct BrickEntry {
+            bool valid = false;
             Bits8 mFlagsA{};
             Bits8 mFlagsB{};  // ver >= 0x23
             Bits16 mFlagsC{};
@@ -563,6 +567,7 @@ namespace Peggle {
             uint32_t mUnk12 = 0;
         };
         struct TeleportEntry {
+            bool valid = false;
             Bits8 mFlags{};
             int32_t mWidth = 0;
             int32_t mHeight = 0;
@@ -575,6 +580,7 @@ namespace Peggle {
             float mUnk4 = 0.;
         };
         struct EmitterEntry {
+            bool valid = false;
             int32_t mMainVar = 0;
             EmitterFlags mFlags{};
 
@@ -635,14 +641,14 @@ namespace Peggle {
             float mUnknownA = 0.;
             float mUnknownB = 0.;
         };
-        typedef std::variant<RodEntry, PolygonEntry, CircleEntry, BrickEntry, TeleportEntry, EmitterEntry> Entry;
+        struct Entry;
 
         struct Element {
             int32_t magic{};
             int32_t eType{};
             GenericDataFlags flags{};
             GenericData generic{};
-            Entry entry{};
+            Entry* entry{};
         };
 
         struct Level {
@@ -661,8 +667,24 @@ namespace Peggle {
         static LevelTypes::Level LoadLevel(const std::filesystem::path& path);
         static LevelTypes::Level LoadLevel(const Pak& pak, const std::filesystem::path& path);
 
+        static LevelTypes::Element CloneElement(const LevelTypes::Element& element);
+        static LevelTypes::RodEntry* AccessRod(LevelTypes::Entry& entry);
+        static LevelTypes::PolygonEntry* AccessPolygon(LevelTypes::Entry& entry);
+        static LevelTypes::CircleEntry* AccessCircle(LevelTypes::Entry& entry);
+        static LevelTypes::BrickEntry* AccessBrick(LevelTypes::Entry& entry);
+        static LevelTypes::TeleportEntry* AccessTeleporter(LevelTypes::Entry& entry);
+        static LevelTypes::EmitterEntry* AccessEmitter(LevelTypes::Entry& entry);
+
         static FileRef BuildLevel(const LevelTypes::Level& lvl);
     private:
+        static LevelTypes::RodEntry CloneRod(LevelTypes::Entry& entry);
+        static LevelTypes::PolygonEntry ClonePolygon(LevelTypes::Entry& entry);
+        static LevelTypes::CircleEntry CloneCircle(LevelTypes::Entry& entry);
+        static LevelTypes::BrickEntry CloneBrick(LevelTypes::Entry& entry);
+        static LevelTypes::TeleportEntry CloneTeleporter(LevelTypes::Entry& entry);
+        static LevelTypes::EmitterEntry CloneEmitter(LevelTypes::Entry& entry);
+        static LevelTypes::GenericData CloneGenericData(const LevelTypes::GenericData& generic);
+        static LevelTypes::MovementLink CloneMovementLink(const LevelTypes::MovementLink& movement);
     };
 
 #pragma endregion
