@@ -1055,7 +1055,7 @@ namespace Peggle {
         auto bs = binstream();
         bs.write(lvl.version);
         bs.write(lvl.sync_f);
-        bs.write(lvl.entries);
+        bs.write(lvl.Elements.size());
         for (const auto& e : lvl.Elements)
             LevelHelpers::write_element(bs, lvl.version, e);
         auto* res = malloc(bs.size());
