@@ -677,12 +677,12 @@ namespace Peggle {
 
         static FileRef BuildLevel(const LevelTypes::Level& lvl);
     private:
-        static LevelTypes::RodEntry CloneRod(LevelTypes::Entry& entry);
-        static LevelTypes::PolygonEntry ClonePolygon(LevelTypes::Entry& entry);
-        static LevelTypes::CircleEntry CloneCircle(LevelTypes::Entry& entry);
-        static LevelTypes::BrickEntry CloneBrick(LevelTypes::Entry& entry);
-        static LevelTypes::TeleportEntry CloneTeleporter(LevelTypes::Entry& entry);
-        static LevelTypes::EmitterEntry CloneEmitter(LevelTypes::Entry& entry);
+        static void CloneRod(LevelTypes::Entry& entry, LevelTypes::RodEntry* dest);
+        static void ClonePolygon(LevelTypes::Entry& entry, LevelTypes::PolygonEntry* dest);
+        static void CloneCircle(LevelTypes::Entry& entry, LevelTypes::CircleEntry* dest);
+        static void CloneBrick(LevelTypes::Entry& entry, LevelTypes::BrickEntry* dest);
+        static void CloneTeleporter(LevelTypes::Entry& entry, LevelTypes::TeleportEntry* dest);
+        static void CloneEmitter(LevelTypes::Entry& entry, LevelTypes::EmitterEntry* dest);
         static LevelTypes::GenericData CloneGenericData(const LevelTypes::GenericData& generic);
         static LevelTypes::MovementLink CloneMovementLink(const LevelTypes::MovementLink& movement);
     };

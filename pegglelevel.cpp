@@ -1086,164 +1086,137 @@ namespace Peggle {
         return LevelTypes::Entry::GetEmitter(entry);
     }
 
-    LevelTypes::RodEntry Level::CloneRod(LevelTypes::Entry& entry) {
+    void Level::CloneRod(LevelTypes::Entry& entry, LevelTypes::RodEntry* dest) {
         const auto e = AccessRod(entry);
-        if (!e) return {};
-        LevelTypes::RodEntry res = {};
 
-        res.valid = true;
-        res.mFlags = e->mFlags;
-        res.mPointA = e->mPointA;
-        res.mPointB = e->mPointB;
-        res.mE = e->mE;
-        res.mF = e->mF;
-
-        return res;
+        dest->valid = true;
+        dest->mFlags = e->mFlags;
+        dest->mPointA = e->mPointA;
+        dest->mPointB = e->mPointB;
+        dest->mE = e->mE;
+        dest->mF = e->mF;
     }
-    LevelTypes::PolygonEntry Level::ClonePolygon(LevelTypes::Entry& entry) {
+    void Level::ClonePolygon(LevelTypes::Entry& entry, LevelTypes::PolygonEntry* dest) {
         const auto e = AccessPolygon(entry);
-        if (!e) return {};
-        LevelTypes::PolygonEntry res = {};
 
-        res.valid = true;
-        res.mFlagsA = e->mFlagsA;
-        res.mFlagsB = e->mFlagsB;
-        res.mRotation = e->mRotation;
-        res.mUnk1 = e->mUnk1;
-        res.mScale = e->mScale;
-        res.mNormalDir = e->mNormalDir;
-        res.mPos = e->mPos;
-        res.mPoints = e->mPoints;
-        res.mUnk2 = e->mUnk2;
-        res.mGrowType = e->mGrowType;
-
-        return res;
-
+        dest->valid = true;
+        dest->mFlagsA = e->mFlagsA;
+        dest->mFlagsB = e->mFlagsB;
+        dest->mRotation = e->mRotation;
+        dest->mUnk1 = e->mUnk1;
+        dest->mScale = e->mScale;
+        dest->mNormalDir = e->mNormalDir;
+        dest->mPos = e->mPos;
+        dest->mPoints = e->mPoints;
+        dest->mUnk2 = e->mUnk2;
+        dest->mGrowType = e->mGrowType;
     }
-    LevelTypes::CircleEntry Level::CloneCircle(LevelTypes::Entry& entry) {
+    void Level::CloneCircle(LevelTypes::Entry& entry, LevelTypes::CircleEntry* dest) {
         const auto e = AccessCircle(entry);
-        if (!e) return {};
-        LevelTypes::CircleEntry res = {};
 
-        res.valid = true;
-        res.mFlagsA = e->mFlagsA;
-        res.mFlagsB = e->mFlagsB;
-        res.mPos = e->mPos;
-        res.mRadius = e->mRadius;
-
-        return res;
-
+        dest->valid = true;
+        dest->mFlagsA = e->mFlagsA;
+        dest->mFlagsB = e->mFlagsB;
+        dest->mPos = e->mPos;
+        dest->mRadius = e->mRadius;
     }
-    LevelTypes::BrickEntry Level::CloneBrick(LevelTypes::Entry& entry) {
+    void Level::CloneBrick(LevelTypes::Entry& entry, LevelTypes::BrickEntry* dest) {
         const auto e = AccessBrick(entry);
-        if (!e) return {};
-        LevelTypes::BrickEntry res = {};
 
-        res.valid = true;
-        res.mFlagsA = e->mFlagsA;
-        res.mFlagsB = e->mFlagsB;
-        res.mFlagsC = e->mFlagsC;
-        res.mUnk1 = e->mUnk1;
-        res.mUnk2 = e->mUnk2;
-        res.mUnk3 = e->mUnk3;
-        res.mUnk4 = e->mUnk4;
-        res.mPos = e->mPos;
-        res.mUnk5 = e->mUnk5;
-        res.mUnk6 = e->mUnk6;
-        res.mUnk7 = e->mUnk7;
-        res.mUnk8 = e->mUnk8;
-        res.mUnk9 = e->mUnk9;
-        res.mType = e->mType;
-        res.mCurved = e->mCurved;
-        res.mCurvedPoints = e->mCurvedPoints;
-        res.mLeftAngle = e->mLeftAngle;
-        res.mRightAngle = e->mRightAngle;
-        res.mUnk10 = e->mUnk10;
-        res.mSectorAngle = e->mSectorAngle;
-        res.mWidth = e->mWidth;
-        res.mLength = e->mLength;
-        res.mAngle = e->mAngle;
-        res.mTextureFlip = e->mTextureFlip;
-        res.mUnk12 = e->mUnk12;
-
-        return res;
-
+        dest->valid = true;
+        dest->mFlagsA = e->mFlagsA;
+        dest->mFlagsB = e->mFlagsB;
+        dest->mFlagsC = e->mFlagsC;
+        dest->mUnk1 = e->mUnk1;
+        dest->mUnk2 = e->mUnk2;
+        dest->mUnk3 = e->mUnk3;
+        dest->mUnk4 = e->mUnk4;
+        dest->mPos = e->mPos;
+        dest->mUnk5 = e->mUnk5;
+        dest->mUnk6 = e->mUnk6;
+        dest->mUnk7 = e->mUnk7;
+        dest->mUnk8 = e->mUnk8;
+        dest->mUnk9 = e->mUnk9;
+        dest->mType = e->mType;
+        dest->mCurved = e->mCurved;
+        dest->mCurvedPoints = e->mCurvedPoints;
+        dest->mLeftAngle = e->mLeftAngle;
+        dest->mRightAngle = e->mRightAngle;
+        dest->mUnk10 = e->mUnk10;
+        dest->mSectorAngle = e->mSectorAngle;
+        dest->mWidth = e->mWidth;
+        dest->mLength = e->mLength;
+        dest->mAngle = e->mAngle;
+        dest->mTextureFlip = e->mTextureFlip;
+        dest->mUnk12 = e->mUnk12;
     }
-    LevelTypes::TeleportEntry Level::CloneTeleporter(LevelTypes::Entry& entry) {
+    void Level::CloneTeleporter(LevelTypes::Entry& entry, LevelTypes::TeleportEntry* dest) {
         const auto e = AccessTeleporter(entry);
-        if (!e) return {};
-        LevelTypes::TeleportEntry res = {};
 
-        res.valid = true;
-        res.mFlags = e->mFlags;
-        res.mWidth = e->mWidth;
-        res.mHeight = e->mHeight;
-        res.mUnk0 = e->mUnk0;
-        res.mUnk1 = e->mUnk1;
-        res.mUnk2 = e->mUnk2;
+        dest->valid = true;
+        dest->mFlags = e->mFlags;
+        dest->mWidth = e->mWidth;
+        dest->mHeight = e->mHeight;
+        dest->mUnk0 = e->mUnk0;
+        dest->mUnk1 = e->mUnk1;
+        dest->mUnk2 = e->mUnk2;
 
-        res.mEntry = new LevelTypes::Element;
-        *res.mEntry = CloneElement(*e->mEntry);
+        dest->mEntry = new LevelTypes::Element;
+        *dest->mEntry = CloneElement(*e->mEntry);
 
-        res.mPos = e->mPos;
-        res.mUnk3 = e->mUnk3;
-        res.mUnk4 = e->mUnk4;
-
-        return res;
+        dest->mPos = e->mPos;
+        dest->mUnk3 = e->mUnk3;
+        dest->mUnk4 = e->mUnk4;
     }
-    LevelTypes::EmitterEntry Level::CloneEmitter(LevelTypes::Entry& entry) {
+    void Level::CloneEmitter(LevelTypes::Entry& entry, LevelTypes::EmitterEntry* dest) {
         const auto e = AccessEmitter(entry);
-        if (!e) return {};
-        LevelTypes::EmitterEntry res = {};
 
-        res.valid = true;
-        res.mMainVar = e->mMainVar;
-        res.mFlags = e->mFlags;
-        res.mImage = e->mImage;
-        res.mWidth = e->mWidth;
-        res.mHeight = e->mHeight;
-        res.mMainVar0 = e->mMainVar0;
-        res.mMainVar1 = e->mMainVar1;
-        res.mMainVar2 = e->mMainVar2;
-        res.mMainVar3 = e->mMainVar3;
-        res.mUnknown0 = e->mUnknown0;
-        res.mUnknown1 = e->mUnknown1;
-        res.mPos = e->mPos;
-        res.mEmitImage = e->mEmitImage;
-        res.mUnknownEmitRate = e->mUnknownEmitRate;
-        res.mUnknown2 = e->mUnknown2;
-        res.mRotation = e->mRotation;
-        res.mMaxQuantity = e->mMaxQuantity;
-        res.mTimeBeforeFadeOut = e->mTimeBeforeFadeOut;
-        res.mFadeInTime = e->mFadeInTime;
-        res.mLifeDuration = e->mLifeDuration;
-        res.mEmitRate = e->mEmitRate;
-        res.mEmitAreaMultiplier = e->mEmitAreaMultiplier;
-        res.mInitialRotation = e->mInitialRotation;
-        res.mRotationVelocity = e->mRotationVelocity;
-        res.mRotationUnknown = e->mRotationUnknown;
-        res.mMinScale = e->mMinScale;
-        res.mScaleVelocity = e->mScaleVelocity;
-        res.mMaxRandScale = e->mMaxRandScale;
-        res.mColourRed = e->mColourRed;
-        res.mColourGreen = e->mColourGreen;
-        res.mColourBlue = e->mColourBlue;
-        res.mOpacity = e->mOpacity;
-        res.mMinVelocityX = e->mMinVelocityX;
-        res.mMinVelocityY = e->mMinVelocityY;
-        res.mMaxVelocityX = e->mMaxVelocityX;
-        res.mMaxVelocityY = e->mMaxVelocityY;
-        res.mAccelerationX = e->mAccelerationX;
-        res.mAccelerationY = e->mAccelerationY;
-        res.mDirectionSpeed = e->mDirectionSpeed;
-        res.mDirectionRandomSpeed = e->mDirectionRandomSpeed;
-        res.mDirectionAcceleration = e->mDirectionAcceleration;
-        res.mDirectionAngle = e->mDirectionAngle;
-        res.mDirectionRandomAngle = e->mDirectionRandomAngle;
-        res.mUnknownA = e->mUnknownA;
-        res.mUnknownB = e->mUnknownB;
-
-        return res;
+        dest->valid = true;
+        dest->mMainVar = e->mMainVar;
+        dest->mFlags = e->mFlags;
+        dest->mImage = e->mImage;
+        dest->mWidth = e->mWidth;
+        dest->mHeight = e->mHeight;
+        dest->mMainVar0 = e->mMainVar0;
+        dest->mMainVar1 = e->mMainVar1;
+        dest->mMainVar2 = e->mMainVar2;
+        dest->mMainVar3 = e->mMainVar3;
+        dest->mUnknown0 = e->mUnknown0;
+        dest->mUnknown1 = e->mUnknown1;
+        dest->mPos = e->mPos;
+        dest->mEmitImage = e->mEmitImage;
+        dest->mUnknownEmitRate = e->mUnknownEmitRate;
+        dest->mUnknown2 = e->mUnknown2;
+        dest->mRotation = e->mRotation;
+        dest->mMaxQuantity = e->mMaxQuantity;
+        dest->mTimeBeforeFadeOut = e->mTimeBeforeFadeOut;
+        dest->mFadeInTime = e->mFadeInTime;
+        dest->mLifeDuration = e->mLifeDuration;
+        dest->mEmitRate = e->mEmitRate;
+        dest->mEmitAreaMultiplier = e->mEmitAreaMultiplier;
+        dest->mInitialRotation = e->mInitialRotation;
+        dest->mRotationVelocity = e->mRotationVelocity;
+        dest->mRotationUnknown = e->mRotationUnknown;
+        dest->mMinScale = e->mMinScale;
+        dest->mScaleVelocity = e->mScaleVelocity;
+        dest->mMaxRandScale = e->mMaxRandScale;
+        dest->mColourRed = e->mColourRed;
+        dest->mColourGreen = e->mColourGreen;
+        dest->mColourBlue = e->mColourBlue;
+        dest->mOpacity = e->mOpacity;
+        dest->mMinVelocityX = e->mMinVelocityX;
+        dest->mMinVelocityY = e->mMinVelocityY;
+        dest->mMaxVelocityX = e->mMaxVelocityX;
+        dest->mMaxVelocityY = e->mMaxVelocityY;
+        dest->mAccelerationX = e->mAccelerationX;
+        dest->mAccelerationY = e->mAccelerationY;
+        dest->mDirectionSpeed = e->mDirectionSpeed;
+        dest->mDirectionRandomSpeed = e->mDirectionRandomSpeed;
+        dest->mDirectionAcceleration = e->mDirectionAcceleration;
+        dest->mDirectionAngle = e->mDirectionAngle;
+        dest->mDirectionRandomAngle = e->mDirectionRandomAngle;
+        dest->mUnknownA = e->mUnknownA;
+        dest->mUnknownB = e->mUnknownB;
     }
     LevelTypes::GenericData Level::CloneGenericData(const LevelTypes::GenericData& generic) {
         LevelTypes::GenericData res = {};
@@ -1319,31 +1292,30 @@ namespace Peggle {
         const auto entry_type = static_cast<LevelTypes::LevelEntryType>(element.eType);
         res.entry = new LevelTypes::Entry(entry_type);
 
-        const auto entry = res.entry;
         switch (res.eType) {  // TODO: get this working
             case LevelTypes::Rod: {
-                const auto rod = LevelTypes::Entry::GetRod(entry);
-                *rod = CloneRod(*entry); break;
+                auto rod = LevelTypes::Entry::GetRod(res.entry);
+                CloneRod(*element.entry, rod); break;
             }
             case LevelTypes::Polygon: {
-                const auto polygon = LevelTypes::Entry::GetPolygon(entry);
-                *polygon = ClonePolygon(*entry); break;
+                auto polygon = LevelTypes::Entry::GetPolygon(res.entry);
+                ClonePolygon(*element.entry, polygon); break;
             }
             case LevelTypes::Circle: {
-                const auto circle = LevelTypes::Entry::GetCircle(entry);
-                *circle = CloneCircle(*entry); break;
+                auto circle = LevelTypes::Entry::GetCircle(res.entry);
+                CloneCircle(*element.entry, circle); break;
             }
             case LevelTypes::Brick: {
-                const auto brick = LevelTypes::Entry::GetBrick(entry);
-                *brick = CloneBrick(*entry); break;
+                auto brick = LevelTypes::Entry::GetBrick(res.entry);
+                CloneBrick(*element.entry, brick); break;
             }
             case LevelTypes::Teleporter: {
-                const auto teleporter = LevelTypes::Entry::GetTeleporter(entry);
-                *teleporter = CloneTeleporter(*entry); break;
+                auto teleporter = LevelTypes::Entry::GetTeleporter(res.entry);
+                CloneTeleporter(*element.entry, teleporter); break;
             }
             case LevelTypes::Emitter: {
-                const auto emitter = LevelTypes::Entry::GetEmitter(entry);
-                *emitter = CloneEmitter(*entry); break;
+                auto emitter = LevelTypes::Entry::GetEmitter(res.entry);
+                CloneEmitter(*element.entry, emitter); break;
             }
             default: break;
         }
