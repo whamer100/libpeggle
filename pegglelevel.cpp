@@ -977,6 +977,8 @@ namespace Peggle {
             else
                 element.flags.asInt = bs.read<uint32_t>();
             element.generic = read_generic(bs, element.flags);
+            const auto entry_type = static_cast<LevelTypes::LevelEntryType>(element.eType);
+            element.entry = new LevelTypes::Entry(entry_type);
             *element.entry = read_entry(bs, element.eType, version);
             return element;
         }
