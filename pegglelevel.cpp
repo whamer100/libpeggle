@@ -1316,7 +1316,10 @@ namespace Peggle {
         res.flags = element.flags;
         res.generic = CloneGenericData(element.generic);
 
-        const auto entry = element.entry;
+        const auto entry_type = static_cast<LevelTypes::LevelEntryType>(element.eType);
+        res.entry = new LevelTypes::Entry(entry_type);
+
+        const auto entry = res.entry;
         switch (res.eType) {  // TODO: get this working
             case LevelTypes::Rod: {
                 const auto rod = LevelTypes::Entry::GetRod(entry);

@@ -15,8 +15,8 @@ int main()
     // auto test_trophies = Peggle::Config::LoadTrophyConfig(peggle_pak_path / "levels" / "trophy.cfg");
     // auto test_stages = Peggle::Config::LoadStageConfig(peggle_pak_path / "levels" / "stages.cfg");
 
-    // const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
-    // auto pak = Peggle::Pak(peggle_pak_path);
+    const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
+    auto pak = Peggle::Pak(peggle_pak_path);
 
     // auto test_stages = Peggle::Config::LoadStageConfig(pak, "levels\\stages.cfg");
     // auto test_trophies = Peggle::Config::LoadTrophyConfig(pak, "levels\\trophy.cfg");
@@ -26,6 +26,29 @@ int main()
     // auto test_trophies_str = Peggle::Config::BuildConfig(test_trophies);
     // auto test_characters_str = Peggle::Config::BuildConfig(test_characters);
 
+    auto lvl_level1 = Peggle::Level::LoadLevel(pak, "levels\\level1.dat");
+
+    std::vector<Peggle::LevelTypes::Element> new_elements;
+
+    for (auto& element : lvl_level1.Elements) {
+        if (element.eType == Peggle::LevelTypes::Circle) {
+            auto circle = Peggle::Level::AccessCircle(*element.entry);
+            circle->mPos.x += 10.;
+            circle->mPos.y -= 10.;
+
+            auto new_element = Peggle::Level::CloneElement(element);
+            auto new_circle = Peggle::Level::AccessCircle(*new_element.entry);
+            new_circle->mPos.x += 50.;
+            new_circle->mPos.y -= 50.;
+            new_elements.emplace_back(new_element);
+
+            break;
+        }
+    }
+
+    for (auto& element : new_elements) {
+        lvl_level1.Elements.emplace_back(element);
+    }
 
     // auto test_level = Peggle::Level::LoadLevel(pak, "levels\\theamoeban.dat");
     // const auto test_level_build = Peggle::Level::BuildLevel(test_level);
@@ -43,7 +66,7 @@ int main()
     // pak.SetXor(0xF7);
     // pak.Save("Peggle_out.pak");
 
-    //*
+    /*
     auto start = std::chrono::steady_clock::now();
 
     const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
