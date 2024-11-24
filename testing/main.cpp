@@ -43,7 +43,7 @@ int main()
     // pak.SetXor(0xF7);
     // pak.Save("Peggle_out.pak");
 
-    //*
+    /*
     auto start = std::chrono::steady_clock::now();
 
     const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
