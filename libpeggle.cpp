@@ -100,6 +100,21 @@ namespace Peggle {
             LoadPak(path);
     }
 
+    Pak::Pak(const std::filesystem::path &path, const uint8_t Xor) {
+        fp = nullptr;
+        Valid = false;
+        this->Xor = Xor;
+        Version = 0;
+        if (!exists(path)) {
+            Valid = false;
+            return;
+        }
+        if (is_directory(path))
+            LoadFolder(path);
+        else
+            LoadPak(path);
+    }
+
     FileRef Pak::GetFile(const std::string& Path) const {
         if (!HasFile(Path))
             return {
@@ -183,13 +198,21 @@ namespace Peggle {
         log_debug("Loading file \"%s\".\n", fpath_str);
 
         const uint32_t magic = read_uint32le(fp);
-        if (magic == PAK_MAGIC) {
-            Xor = 0x00;
+        if (Xor != 0 && (((Xor * 0x01010101) ^ magic) == PAK_MAGIC)) {
+            // overridden xor is correct
+            log_debug("Pak uses custom xor 0x%02X\n", Xor);
             Valid = true;
         }
-        if ((magic ^ 0xF7F7F7F7) == PAK_MAGIC) {
-            Xor = 0xF7;
-            Valid = true;
+        else {
+            // check known values if provided xor value is incorrect
+            if (magic == PAK_MAGIC) {
+                Xor = 0x00;
+                Valid = true;
+            }
+            if ((magic ^ 0xF7F7F7F7) == PAK_MAGIC) {
+                Xor = 0xF7;
+                Valid = true;
+            }
         }
         set_xor(Xor);
 

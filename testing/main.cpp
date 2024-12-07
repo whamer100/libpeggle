@@ -16,7 +16,7 @@ int main()
     // auto test_stages = Peggle::Config::LoadStageConfig(peggle_pak_path / "levels" / "stages.cfg");
 
     const auto peggle_pak_path = std::filesystem::path(R"(C:\Projects\Generic\Haggle\paks\Peggle.pak)");
-    auto pak = Peggle::Pak(peggle_pak_path);
+    auto pak = Peggle::Pak(peggle_pak_path, 0xF7);
 
     // auto test_stages = Peggle::Config::LoadStageConfig(pak, "levels\\stages.cfg");
     // auto test_trophies = Peggle::Config::LoadTrophyConfig(pak, "levels\\trophy.cfg");
@@ -28,8 +28,9 @@ int main()
 
     auto lvl_level1 = Peggle::Level::LoadLevel(pak, "levels\\level1.dat");
 
-    std::vector<Peggle::LevelTypes::Element> new_elements;
+    std::vector<std::pair<int, Peggle::LevelTypes::Element>> new_elements;
 
+    int i = 0;
     for (auto& element : lvl_level1.Elements) {
         if (element.eType == Peggle::LevelTypes::Circle) {
             auto circle = Peggle::Level::AccessCircle(*element.entry);
@@ -38,22 +39,31 @@ int main()
 
             auto new_element = Peggle::Level::CloneElement(element);
             auto new_circle = Peggle::Level::AccessCircle(*new_element.entry);
-            new_circle->mPos.x += 50.;
-            new_circle->mPos.y -= 50.;
-            new_elements.emplace_back(new_element);
+            new_circle->mPos.x += 20.;
+            new_circle->mPos.y -= 20.;
+            new_elements.emplace_back(i, new_element);
 
             break;
         }
+        ++i;
     }
 
-    for (auto& element : new_elements) {
-        lvl_level1.Elements.emplace_back(element);
+    for (int i = new_elements.size() - 1; i >= 0; --i) {
+        const auto& [index, element] = new_elements[i];
+        lvl_level1.Elements.insert(lvl_level1.Elements.begin() + index, element);
+    }
+    const auto test_level_build = Peggle::Level::BuildLevel(lvl_level1);
+    pak.UpdateFile("levels\\level1.dat", test_level_build.Data, test_level_build.Size);
+
+    if (std::ofstream test_lvl_file(R"(C:\Projects\Generic\Haggle\test_level1_new.dat)", std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
+        test_lvl_file.write(static_cast<const char *>(test_level_build.Data), test_level_build.Size);
+        test_lvl_file.close();
     }
 
     // auto test_level = Peggle::Level::LoadLevel(pak, "levels\\theamoeban.dat");
     // const auto test_level_build = Peggle::Level::BuildLevel(test_level);
     // // pak.UpdateFile("levels\\tubing.dat", test_level_build.Data, test_level_build.Size);
-    //
+
     // if (std::ofstream test_lvl_file(R"(C:\Projects\Generic\Haggle\test_theamoeban.dat)", std::ios::out | std::ios::binary); test_lvl_file.is_open()) {
     //     test_lvl_file.write(static_cast<const char *>(test_level_build.Data), test_level_build.Size);
     //     test_lvl_file.close();

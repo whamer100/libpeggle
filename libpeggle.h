@@ -39,6 +39,8 @@ namespace Peggle {
     public:
         // open pak file or folder
         explicit Pak(const std::filesystem::path& path);
+        // open pak file or folder with custom xor
+        explicit Pak(const std::filesystem::path& path, uint8_t Xor);
         // save pak to file
         void Save(const std::filesystem::path& path) const;
         // save pak to folder

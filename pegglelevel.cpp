@@ -1292,7 +1292,7 @@ namespace Peggle {
         const auto entry_type = static_cast<LevelTypes::LevelEntryType>(element.eType);
         res.entry = new LevelTypes::Entry(entry_type);
 
-        switch (res.eType) {  // TODO: get this working
+        switch (res.eType) {
             case LevelTypes::Rod: {
                 auto rod = LevelTypes::Entry::GetRod(res.entry);
                 CloneRod(*element.entry, rod); break;
